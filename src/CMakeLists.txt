@@ -2,10 +2,12 @@ cmake_minimum_required(VERSION 2.8)
 # Note, the optional FORTRAN specification is only requied due to LAPACK below.  If we were to use
 # CLAPACK (i.e. f2c) exclusivly we wouldn't need this.  I didn't want to write a FindF2C.cmake file
 # so we'll just keep with the fortran libraries.
-project (fit_rv C Fortran)
+project (orbit_fit CXX Fortran)
 
 set(CMAKE_BUILD_TYPE Release)
 
+# You may need to specify the multinest root directory if it isn't found
+# by find_package automatically.
 #set(MULTINEST_ROOT_DIR /home/bkloppen/lib/MultiNest_v2.12)
 find_package(MULTINEST REQUIRED)
 include_directories(${MULTINEST_INCLUDE_DIRS})
@@ -36,11 +38,16 @@ set(LIBS ${LIBS} ${LAPACK_liBRARIES})
 # Requires the math library
 set(LIBS ${LIBS} m)
 
-#file(GLOB_RECURSE SOURCE . *.c)
-file(GLOB SOURCE . *.c)
+# Explicitly include the orbit and textio libraries/include directories
+include_directories(../lib/textio)
+include_directories(../lib/orbital_motion)
 
-add_executable (fit_rv ${SOURCE})
+# Now specify the source and output for the individual binaries:
+file(GLOB GEN_DATA_SOURCE gen_data/*.cpp)
+add_executable(gendata ${GEN_DATA_SOURCE})
+SET_TARGET_PROPERTIES(gendata PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(gendata orbit textio)
 
-SET_TARGET_PROPERTIES(fit_rv PROPERTIES LINKER_LANGUAGE Fortran)
+#SET_TARGET_PROPERTIES(fit_rv PROPERTIES LINKER_LANGUAGE Fortran)
 
-target_link_libraries(fit_rv ${LIBS})
+#target_link_libraries(fit_rv ${LIBS})
