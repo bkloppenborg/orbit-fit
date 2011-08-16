@@ -6,47 +6,44 @@ project (orbit_fit CXX Fortran)
 
 set(CMAKE_BUILD_TYPE Release)
 
-# You may need to specify the multinest root directory if it isn't found
-# by find_package automatically.
-#set(MULTINEST_ROOT_DIR /home/bkloppen/lib/MultiNest_v2.12)
-find_package(MULTINEST REQUIRED)
-include_directories(${MULTINEST_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${MULTINEST_LIBRARIES})
-
 if(${CMAKE_Fortran_COMPILER_ID} EQUAL "Intel")
     set(USING_INTEL True)
 endif()
-
 
 set(MPI_COMPILER mpif90)
 find_package(MPI)
 if(MPI_FOUND)
     include_directories(${MPI_INCLUDE_PATH})
-    set(LIBS ${LIBS} ${MPI_LIBRARY})
     set(CMAKE_Fortran_COMPILER ${MPI_COMPILER})
-    set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS} "-nofor_main")
+    set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS})
 endif(MPI_FOUND)
 
 # We need lapack, but the cluster doesn't have it installed in the
 # right location, workaround
-#set(LIB ${LIB} /usr/lib64 -llapack)
+#list(APPEND LIBS /usr/lib64 -llapack)
 
 find_package(LAPACK REQUIRED)
 include_directories(${LAPACK_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${LAPACK_liBRARIES})
 
 # Requires the math library
 set(LIBS ${LIBS} m)
 
 # Explicitly include the orbit and textio libraries/include directories
-include_directories(../lib/textio)
-include_directories(../lib/orbital_motion)
+include_directories(.)
+include_directories(${CMAKE_SOURCE_DIR}/lib/textio)
+include_directories(${CMAKE_SOURCE_DIR}/lib/orbital_motion)
+include_directories(${CMAKE_SOURCE_DIR}/lib/multinest)
 
 # Now specify the source and output for the individual binaries:
 file(GLOB GEN_DATA_SOURCE gen_data/*.cpp)
-add_executable(gendata ${GEN_DATA_SOURCE})
+add_executable(gendata common.cpp ${GEN_DATA_SOURCE})
 SET_TARGET_PROPERTIES(gendata PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(gendata orbit textio)
+
+file(GLOB FIT_RV_SOURCE fit_rv/*.cpp)
+add_executable(fitrv common.cpp ${FIT_RV_SOURCE})
+SET_TARGET_PROPERTIES(fitrv PROPERTIES LINKER_LANGUAGE Fortran)
+target_link_libraries(fitrv orbit textio multinest ${MPI_LIBRARY} ${LAPACK_LIBRARIES})
 
 #SET_TARGET_PROPERTIES(fit_rv PROPERTIES LINKER_LANGUAGE Fortran)
 
