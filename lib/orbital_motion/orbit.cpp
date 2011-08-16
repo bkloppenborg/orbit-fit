@@ -34,7 +34,9 @@ using namespace std;
  */
 
 // TODO: It would be better to look this up in a library, but the precision here should be good enough for now.
-#ifndef PI
+#ifdef M_PI
+#define PI M_PI
+#else
 #define PI 3.1415926535897932384626433832795028841968
 #endif
 
@@ -132,7 +134,7 @@ void GetAll(double Omega, double inc, double omega, double a, double e, double t
 }
 
 void GetVelocities(double Omega, double inc, double omega, double a, double e, double tau, double T, double t,
-	double v_x, double v_y, double v_z)
+	double & v_x, double & v_y, double & v_z)
 {
 	// Local variables
 	double l1, l2, m1, m2, n1, n2;
@@ -242,7 +244,7 @@ void GetPositions(double Omega, double inc, double omega, double a, double e, do
 
 // Computes only the radial velocity given the orbital parameters
 // TODO: Add in a function that takes the more traditional K-based parameters too.
-void GeRV(double inc, double omega, double a, double e, double tau, double T, double t,
+void GetRV(double inc, double omega, double a, double e, double tau, double T, double t,
 	double & rv)
 {
 	// Local variables

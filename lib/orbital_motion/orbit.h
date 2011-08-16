@@ -10,6 +10,9 @@
  *  fitting method (least squares, Bayesian, etc.)
  */
 
+#ifndef ORBIT_H
+#define ORBIT_H
+
 // Define a few constants:
 double const THRESH = 1E-5;
 int const MAX_ITERATIONS = 50;
@@ -28,7 +31,7 @@ void GetAll(double Omega, double inc, double omega, double a, double e, double t
 		double & x, double & y, double & z, double & v_x, double v_y, double & v_z);
 
 void GetVelocities(double Omega, double inc, double omega, double a, double e, double tau, double T, double t,
-	double v_x, double v_y, double v_z);
+	double & v_x, double & v_y, double & v_z);
 
 // Computes the radius vector and cross-checks it.
 double ComputeR(double a, double e, double E);
@@ -57,5 +60,7 @@ void GetPositions(double Omega, double inc, double omega, double a, double e, do
 
 // Computes only the radial velocity given the orbital parameters
 // TODO: Add in a function that takes the more traditional K-based parameters too.
-void GeRV(double inc, double omega, double a, double e, double tau, double T, double t,
+void GetRV(double inc, double omega, double a, double e, double tau, double T, double t,
 	double & rv);
+
+#endif // ORBIT_H
