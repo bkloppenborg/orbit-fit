@@ -85,7 +85,8 @@ void WriteData(double Omega, double inc, double omega, double a, double alpha, d
 	params << "inc   = " << RadToDeg(inc) << endl;
 	params << "omega = " << RadToDeg(omega) << endl;
 	params << "a     = " << a << endl;
-	params << "alpha = " << alpha << endl;
+	params << "asini = " << a * sin(inc) << endl;
+	params << "alpha = " << RadToMas(alpha) << endl;
 	params << "e     = " << e << endl;
 	params << "tau   = " << tau << endl;
 	params << "T     = " << T << endl;

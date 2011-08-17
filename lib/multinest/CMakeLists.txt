@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 2.8)
+project(orbit Fortran)
+
+file(GLOB MULTINEST_SOURCE *.f90 *.F90)
+
+set(MPI_COMPILER mpif90)
+find_package(MPI)
+if(MPI_FOUND)
+    include_directories(${MPI_INCLUDE_PATH})
+    set(CMAKE_Fortran_COMPILER ${MPI_COMPILER})
+    set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS})
+endif(MPI_FOUND)
+
+find_package(LAPACK REQUIRED)
+include_directories(${LAPACK_INCLUDE_DIRS})
+
+set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS} " -O3 -fPIC -DMPI -ffree-line-length-none")
+add_library(multinest ${MULTINEST_SOURCE})
+SET_TARGET_PROPERTIES(multinest PROPERTIES LINKER_LANGUAGE Fortran)
+target_link_libraries(multinest ${LAPACK_LIBRARY} ${MPI_LIBRARY})
