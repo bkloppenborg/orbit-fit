@@ -266,3 +266,22 @@ void GetRV(double inc, double omega, double a, double e, double tau, double T, d
     // Compute the positions and velocities:
     rv = n * a / eta * (beta * n2 * cos_E - n1 * sin_E);
 }
+
+// Computes the radial velocity given the orbital parameters.  Uses asini instead of a and inc.
+void GetRV(double omega, double asini, double e, double tau, double T, double t, double & rv)
+{
+	// Local variables
+    double n = ComputeN(T);
+    double M = ComputeM(tau, n, t);
+    double E = ComputeE(M, e);
+
+    double cos_E = cos(E);
+    double sin_E = sin(E);
+
+    // For bound, elliptical orbits we have
+    double beta = sqrt(1 - e*e);
+    double eta = 1 - e * cos_E;
+
+    // Compute the positions and velocities:
+    rv = n * asini / eta * (beta * cos(omega) * cos_E - sin(omega) * sin_E);
+}

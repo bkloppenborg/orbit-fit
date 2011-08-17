@@ -35,7 +35,7 @@ include_directories(${CMAKE_SOURCE_DIR}/lib/orbital_motion)
 include_directories(${CMAKE_SOURCE_DIR}/lib/multinest)
 
 # Now specify the source and output for the individual binaries:
-file(GLOB GEN_DATA_SOURCE gen_data/*.cpp)
+file(GLOB GEN_DATA_SOURCE gen_data/*.cpp gen_data/*.c)
 add_executable(gendata common.cpp ${GEN_DATA_SOURCE})
 SET_TARGET_PROPERTIES(gendata PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(gendata orbit textio)

@@ -5,7 +5,7 @@
 #elif defined __GNUC__ 				// if the MultiNest library was compiled with gfortran
        #define NESTRUN __nested_MOD_nestrun
 #else
-       #error Don't know how to link to Fortran libraries, check symbol table for your platform (nm libnest3.a | grep nestrun) & edit example_eggbox_C/eggbox.c
+       #error "Don't know how to link to Fortran libraries, check symbol table for your platform (nm libnest3.a | grep nestrun) & edit example_eggbox_C/eggbox.c"
 #endif
 
 #ifndef MULTINEST_H

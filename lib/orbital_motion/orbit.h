@@ -63,4 +63,7 @@ void GetPositions(double Omega, double inc, double omega, double a, double e, do
 void GetRV(double inc, double omega, double a, double e, double tau, double T, double t,
 	double & rv);
 
+void GetRV(double omega, double asini, double e, double tau, double T, double t,
+		double & rv);
+
 #endif // ORBIT_H

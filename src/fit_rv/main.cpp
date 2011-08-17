@@ -80,7 +80,7 @@ void read_data(string filename, string comment_chars, vector< vector<double> > &
 		{
 			t = atof(tokens[0].c_str());
 			rv = atof(tokens[1].c_str());
-//			e_rv = atof(tokens[2].c_str());
+			e_rv = atof(tokens[2].c_str());
 		}
 		catch(...)
 		{
@@ -92,6 +92,7 @@ void read_data(string filename, string comment_chars, vector< vector<double> > &
 		vector<double> temp;
 		temp.push_back(t);
 		temp.push_back(rv);
+		temp.push_back(e_rv);
 		data.push_back(temp);
 	}
 }
@@ -99,7 +100,7 @@ void read_data(string filename, string comment_chars, vector< vector<double> > &
 void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 {
 	// Local variables
-	double t, V, v_i, sig_i2, a;
+	double t, V, rvi, e_rvi, e_rvi2, tmp;
 
     // First extract the parameters, convert to real units:
 	double V0 = Cube[0] * scale_V0;
@@ -117,8 +118,6 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     Cube[4] = tau;
     Cube[5] = T;
 
-    //cout << omega << " " << asini << " " << e << " " << tau << " " << T << endl;
-
     // Compute a few things
     double prior = prior_V0
     			+ prior_omega
@@ -127,23 +126,25 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     			+ 1.0 / log(tau) * prior_tau
     			+ 1.0 / log(T) * prior_T;
 
-    double s2 = 0; //s*s;
+    double s2 = 0; //s*s; // intrinsic noise due to star or whatever...
     double llike = (double) n_data / 2.0 * log(TWO_PI);
 
     // Now compute the contribution of loglike from the data - model:
     for(int i = 0; i < n_data; i++)
     {
         t = data[i][0];
-        v_i = data[i][1];
+        rvi = data[i][1];
+        e_rvi = data[i][2];
 
         GetRV(omega, asini, e, tau, T, t, V);
-        //cout << V << " " << v_i << endl;
-        //sig_i2 = data_err[i] * data_err[i];
+        e_rvi2 = e_rvi * e_rvi;
 
-        a = s2; //(sig_i2 + s2);
+        tmp = e_rvi2; //(sig_i2 + s2);
 
-        llike -= 0.5 * log(a) + (V0+V-v_i)*(V0+V-v_i) / (2*a);
+        llike -= 0.5 * log(tmp) + (V0+V-rvi)*(V0+V-rvi) / (2*tmp);
     }
+
+    //cout << omega << " " << asini << " " << e << " " << tau << " " << T << " " << llike << endl;
 
 	// Assign the value and we're done.
 	*lnew = llike + prior;
@@ -157,8 +158,8 @@ void run_fit(vector< vector<double> > & data)
 	double V0_max = 10;
     double omega_min = 0;
     double omega_max = TWO_PI;
-    double asini_min = 1;
-    double asini_max = 20000;
+    double asini_min = 0;
+    double asini_max = 1E5;
     double e_min = 0;
     double e_max = 1;
     double tau_min = 0;
@@ -185,12 +186,13 @@ void run_fit(vector< vector<double> > & data)
     prior_T = 1.0 / log(T_max / T_min);
 
     n_data = data.size();
+    printf("Found %i data points.\n", n_data);
 
 
 	// set the MultiNest sampling parameters
 	int mmodal = 1;					// do mode separation?
 	int ceff = 0;					// run in constant efficiency mode?
-	int nlive = 100;				// number of live points
+	int nlive = 1000;				// number of live points
 	double efr = 1.0;				// set the required efficiency
 	double tol = 0.5;				// tol, defines the stopping criteria
 	int ndims = 6;					// dimensionality (no. of free parameters)
@@ -204,7 +206,7 @@ void run_fit(vector< vector<double> > & data)
 	for(int i = 0; i < ndims; i++)
 	    pWrap[i] = 0;
 
-	pWrap[1] = 0;   // omega
+	pWrap[1] = 1;   // omega
 
 	char root[100] = "chains/fitrv-";		// root for output files
 	int seed = -1;					// random no. generator seed, if < 0 then take the seed from system clock

@@ -15,8 +15,10 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <math.h>
 #include "orbit.h"
 #include "common.h"
+#include "random.h"
 
 using namespace std;
 
@@ -37,27 +39,41 @@ void PrintHelp()
 
 // Generates some orbital data.
 void GenerateData(double Omega, double inc, double omega, double a, double alpha, double e, double tau, double T,
-		vector<double> & times, vector< vector<double> > & positions, vector<double> & velocities)
+		vector<double> & times, vector< vector<double> > & positions, vector< vector<double> > & velocities)
 {
 	int n_data = times.size();
-	double t, x, y, z, rv;
+	double t, x, s_x, y, s_y, z, rv, s_rv, sig;
+
+	// Pull up the random number generator.
+	static Rand_t random_seed;
 
 	for(int i = 0; i < n_data; i++)
 	{
 		// Compute the positions and velocities
 		t = times[i];
 		GetPositions(Omega, inc, omega, alpha, e, tau, T, t, x, y, z);
-		GetRV(inc, omega, a, e, tau, T, t, rv);
+		GetRV(omega, a*sin(inc), e, tau, T, t, rv);
 
-		positions[i][0] = x;
-		positions[i][1] = y;
-		velocities[i] = rv;
+		// TODO: This really isn't a good way of creating
+		// data with noise as we're assuming 6 mas error on positioning, and 0.1 km/s on RV
+		sig = Rangauss(random_seed);
+		s_x = MasToRad(6) * sig;
+		s_y = MasToRad(6) * sig;
+		s_rv = 0.1 * sig;
+
+		positions[i][0] = x + s_x * Rangauss(random_seed);
+		positions[i][1] = fabs(s_x);
+		positions[i][2] = y + s_y * Rangauss(random_seed);
+		positions[i][3] = fabs(s_y);
+
+		velocities[i][0] = rv + s_rv * Rangauss(random_seed);
+		velocities[i][1] = fabs(s_rv);
 	}
 }
 
 // Writes the data and parameter information to files.
 void WriteData(double Omega, double inc, double omega, double a, double alpha, double e, double tau, double T,
-		vector<double> times, vector< vector<double> > positions, vector<double> velocities,
+		vector<double> times, vector< vector<double> > positions, vector< vector<double> > velocities,
 		string output_rv, string output_astr, string output_params)
 {
 	// First write out the parameter file:
@@ -65,9 +81,9 @@ void WriteData(double Omega, double inc, double omega, double a, double alpha, d
 	params.precision(10);
 	params.setf(ios::fixed,ios::floatfield);
 	params.open(output_params.c_str());
-	params << "Omega = " << Omega << endl;
-	params << "inc   = " << inc << endl;
-	params << "omega = " << omega << endl;
+	params << "Omega = " << RadToDeg(Omega) << endl;
+	params << "inc   = " << RadToDeg(inc) << endl;
+	params << "omega = " << RadToDeg(omega) << endl;
 	params << "a     = " << a << endl;
 	params << "alpha = " << alpha << endl;
 	params << "e     = " << e << endl;
@@ -92,8 +108,8 @@ void WriteData(double Omega, double inc, double omega, double a, double alpha, d
 	{
 		t = times[i];
 		// Write out the RV value
-		rv << t << " " << velocities[i] << endl;
-		astr << t << " " << RadToMas(positions[i][0]) << " " << RadToMas(positions[i][1]) << endl;
+		rv << t << " " << velocities[i][0] << " " << velocities[i][1] << endl;
+		astr << t << " " << RadToMas(positions[i][0]) << " " << RadToMas(positions[i][1]) << " " << RadToMas(positions[i][2]) << " " << RadToMas(positions[i][3]) <<endl;
 	}
 
 	// Now close the files.
@@ -125,7 +141,7 @@ int main(int argc, char *argv[])
     double Omega = 45;
     double inc = 20;
     double omega = 90;
-    double a = 5.2E3;
+    double a = 5.3E3;
     double alpha = 30;
     double e = 0.227;
     double tau = 580;
@@ -164,7 +180,7 @@ int main(int argc, char *argv[])
 	// Create vectors into which the data will be stored.
 	vector< double > times;
 	vector< vector<double> > positions;
-	vector< double > velocities;
+	vector< vector<double> > velocities;
 
 	// Resize the vectors:
 	times.resize(n_data);
@@ -176,7 +192,8 @@ int main(int argc, char *argv[])
 		times[i] = t_0 + i * dt;
 
 		// Resize the position vector, store only (x,y) pairs.
-		positions[i].resize(2);
+		positions[i].resize(4);
+		velocities[i].resize(2);
 	}
 
 	// Now generate the data and write it out to a file.
