@@ -41,6 +41,8 @@ double tau_min;
 double tau_max;
 double T_min;
 double T_max;
+double s_min;
+double s_max;
 
 double scale_V0;
 double scale_omega;
@@ -48,6 +50,7 @@ double scale_asini;
 double scale_e;
 double scale_tau;
 double scale_T;
+double scale_s;
 
 double prior_V0;
 double prior_omega;
@@ -55,6 +58,7 @@ double prior_asini;
 double prior_e;
 double prior_tau;
 double prior_T;
+double prior_s;
 
 vector< vector<double> > data;
 int n_data;
@@ -141,6 +145,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     double e = Cube[3]; // not scaled
     double tau = Cube[4] * scale_tau;
     double T = Cube[5] * scale_T;
+    double s = Cube[6] * scale_s;
 
     // Now set the cube parameters:
     Cube[0] = V0;
@@ -149,6 +154,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     Cube[3] = e;
     Cube[4] = tau;
     Cube[5] = T;
+    Cube[6] = s;
 
     // Compute a few things
     double prior = prior_V0
@@ -158,7 +164,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     			+ 1.0 / log(tau) * prior_tau
     			+ 1.0 / log(T) * prior_T;
 
-    double s2 = 0; //s*s; // intrinsic noise due to star or whatever...
+    double s2 = s*s; // intrinsic noise due to star or whatever...
     double llike = (double) n_data / 2.0 * log(TWO_PI);
 
     // Now compute the contribution of loglike from the data - model:
@@ -171,7 +177,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
         GetRV(omega, asini, e, tau, T, t, V);
         e_rvi2 = e_rvi * e_rvi;
 
-        tmp = e_rvi2; //(sig_i2 + s2);
+        tmp = e_rvi2 + s2;
 
         llike -= 0.5 * log(tmp) + (V0+V-rvi)*(V0+V-rvi) / (2*tmp);
     }
@@ -198,6 +204,8 @@ void run_fit(vector< vector<double> > & data)
     tau_max = 2.5E7;
     T_min = 0;
     T_max = 1E5;
+    s_min = 0;
+    s_max = 15;
 
     // Compute scales:
     scale_V0 = V0_max - V0_min;
@@ -206,6 +214,7 @@ void run_fit(vector< vector<double> > & data)
     scale_e = e_max - e_min;
     scale_tau = tau_max - tau_min;
     scale_T = T_max - T_min;
+    scale_s = s_max - s_min;
 
     // Compute much of values needed for the priors:
     // Here omega and e will use uniform priors
@@ -216,6 +225,7 @@ void run_fit(vector< vector<double> > & data)
     prior_e = 1.0 / scale_e;
     prior_tau = 1.0 / log(tau_max / tau_min);
     prior_T = 1.0 / log(T_max / T_min);
+    prior_s = 1.0 / scale_s;
 
     n_data = data.size();
     printf("Found %i data points.\n", n_data);
@@ -227,9 +237,9 @@ void run_fit(vector< vector<double> > & data)
 	int nlive = 1000;				// number of live points
 	double efr = 1.0;				// set the required efficiency
 	double tol = 0.5;				// tol, defines the stopping criteria
-	int ndims = 6;					// dimensionality (no. of free parameters)
-	int nPar = 6;					// total no. of parameters including free & derived parameters
-	int nClsPar = 6;				// no. of parameters to do mode separation on
+	int ndims = 7;					// dimensionality (no. of free parameters)
+	int nPar = 7;					// total no. of parameters including free & derived parameters
+	int nClsPar = 7;				// no. of parameters to do mode separation on
 	int updInt = 100;				// after how many iterations feedback is required & the output files should be updated
 									// note: posterior files are updated & dumper routine is called after every updInt*10 iterations
 	double Ztol = -1E90;			// all the modes with logZ < Ztol are ignored
