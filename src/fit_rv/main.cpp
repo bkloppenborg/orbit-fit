@@ -29,6 +29,19 @@
 using namespace std;
 
 // Global Variables (scales and (sometimes partial) priors:
+double V0_min;
+double V0_max;
+double omega_min;
+double omega_max;
+double asini_min;
+double asini_max;
+double e_min;
+double e_max;
+double tau_min;
+double tau_max;
+double T_min;
+double T_max;
+
 double scale_V0;
 double scale_omega;
 double scale_asini;
@@ -61,7 +74,7 @@ void print_help()
 	cout << usage << "\n";
 }
 
-void read_data(string filename, string comment_chars, vector< vector<double> > & data)
+void read_data(string filename, string comment_chars, double default_error, vector< vector<int> > split_info, vector< vector<double> > & data)
 {
 	// First determine the type of observation and fork it off to the
     vector < string > lines = ReadFile(filename, comment_chars, "Cannot Open Radial Velocity Data File");
@@ -72,21 +85,40 @@ void read_data(string filename, string comment_chars, vector< vector<double> > &
 
 	for (unsigned int i = 0; i < lines.size(); i++)
 	{
-		// First tokenize the line
-		vector < string > tokens = Tokenize(lines[i]);
+		vector < string > tokens;
+
+		if(split_info.size() > 0)
+			tokens = Tokenize(lines[i], split_info);
+		else
+			tokens = Tokenize(lines[i]);
+
 
 		// And now attempt to read in the line
 		try
 		{
 			t = atof(tokens[0].c_str());
 			rv = atof(tokens[1].c_str());
-			e_rv = atof(tokens[2].c_str());
 		}
 		catch(...)
 		{
 			throw std::runtime_error("Could not parse line in RV data file.");
 		}
 
+		// Now do the RV, permit
+		try
+		{
+			e_rv = atof(tokens[2].c_str());
+		}
+		catch(...)
+		{
+			e_rv = default_error;
+		}
+
+		if(e_rv == 0)
+			e_rv = default_error;
+
+		// Enable if you want to see the data.
+		//printf("%f %f %f \n", t, rv, e_rv);
 
 		// Push this station on to the list of stations for this array.
 		vector<double> temp;
@@ -103,7 +135,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	double t, V, rvi, e_rvi, e_rvi2, tmp;
 
     // First extract the parameters, convert to real units:
-	double V0 = Cube[0] * scale_V0;
+	double V0 = Cube[0] * scale_V0 + V0_min;
     double omega = Cube[1] * scale_omega;
     double asini = Cube[2] * scale_asini;
     double e = Cube[3]; // not scaled
@@ -154,18 +186,18 @@ void run_fit(vector< vector<double> > & data)
 {
 	// Setup the interface to multinest, run it.
     // TODO: Read in these limits from elsewhere
-	double V0_min = -10;
-	double V0_max = 10;
-    double omega_min = 0;
-    double omega_max = TWO_PI;
-    double asini_min = 0;
-    double asini_max = 1E5;
-    double e_min = 0;
-    double e_max = 1;
-    double tau_min = 0;
-    double tau_max = 1000;
-    double T_min = 0;
-    double T_max = 10000;
+	V0_min = -10;
+	V0_max = 10;
+    omega_min = 0;
+    omega_max = TWO_PI;
+    asini_min = 0;
+    asini_max = 1E10;
+    e_min = 0;
+    e_max = 1;
+    tau_min = 0;
+    tau_max = 1000;
+    T_min = 0;
+    T_max = 10000;
 
     // Compute scales:
     scale_V0 = V0_max - V0_min;
@@ -278,7 +310,17 @@ int main(int argc, char *argv[])
     // Each row should contain time, RV, [errors]
     const string comment_chars("\\#~$&£%");
 
-    read_data(input_rv, comment_chars, data);
+    int pos_size[] = {0, 12, 13, 6, 20, 4};
+    vector< vector<int> > split_info;
+    for(int i = 0; i < 3; i++)
+    {
+    	vector<int> tmp;
+    	tmp.push_back(pos_size[2*i]);
+    	tmp.push_back(pos_size[2*i+1]);
+    	split_info.push_back(tmp);
+    }
+
+    read_data(input_rv, comment_chars, 5, split_info, data);
 
     run_fit(data);
 

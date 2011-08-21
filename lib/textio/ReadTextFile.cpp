@@ -101,6 +101,29 @@ vector<string> Tokenize(string line)
     return tokens;
 }
 
+vector<string> Tokenize(string line, vector< vector<int> > split_info)
+{
+	vector <string> tokens;
+	string tmp;
+	int start, n_chars;
+
+	int i_prior;
+
+	vector< vector<int> >::iterator it;
+
+	for (int i = 0; i < split_info.size(); i++)
+	{
+		start = split_info[i][0];
+		n_chars = split_info[i][1];
+
+		tmp = line.substr(start, n_chars);
+		tokens.push_back(tmp);
+	}
+
+
+	return tokens;
+}
+
 // See if a file exists.  Returns true if it does.
 bool FileExists(string filename)
 {

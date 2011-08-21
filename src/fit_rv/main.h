@@ -39,7 +39,7 @@ using namespace std;
 // Prints out help describing the options on the command line
 void print_help();
 
-void read_data(string filename, string comment_chars, vector< vector<double> > & data);
+void read_data(string filename, string comment_chars, double defaut_error, vector< vector<int> > split_info, vector< vector<double> > & data);
 
 void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew);
 

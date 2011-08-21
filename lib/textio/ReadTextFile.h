@@ -18,6 +18,7 @@ void 	StripWhitespace(vector<string> & strings);
 vector<string> ReadFile(string filename, string comment_chars, string error_message);
 
 vector<string> Tokenize(string line);
+vector<string> Tokenize(string line, vector< vector<int> > split_locations);
 
 bool 	FileExists(string filename);
 
