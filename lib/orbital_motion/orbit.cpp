@@ -43,7 +43,7 @@ using namespace std;
 // Computes the mean angular velocity for the given period, T
 double ComputeN(double T)
 {
-	return 2 * PI / T;
+	return 2.0 * PI / T;
 }
 
 // Computes the mean anomaly given tau, n, and the time of observation, t.

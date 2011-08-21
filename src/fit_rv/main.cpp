@@ -60,6 +60,8 @@ double prior_tau;
 double prior_T;
 double prior_s;
 
+#define DAY_IN_SEC 24 * 60 * 60
+
 vector< vector<double> > data;
 int n_data;
 
@@ -101,7 +103,8 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		try
 		{
 			t = atof(tokens[0].c_str());
-			rv = atof(tokens[1].c_str());
+			// Covert rv over to km/day
+			rv = atof(tokens[1].c_str()) * DAY_IN_SEC;
 		}
 		catch(...)
 		{
@@ -111,15 +114,15 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		// Now do the RV, permit
 		try
 		{
-			e_rv = atof(tokens[2].c_str());
+			e_rv = atof(tokens[2].c_str()) * DAY_IN_SEC;
 		}
 		catch(...)
 		{
-			e_rv = default_error;
+			e_rv = 0;
 		}
 
 		if(e_rv == 0)
-			e_rv = default_error;
+			e_rv = default_error * DAY_IN_SEC;
 
 		// Enable if you want to see the data.
 		//printf("%f %f %f \n", t, rv, e_rv);
