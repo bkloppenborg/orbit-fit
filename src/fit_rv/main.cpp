@@ -195,9 +195,9 @@ void run_fit(vector< vector<double> > & data)
     e_min = 0;
     e_max = 1;
     tau_min = 0;
-    tau_max = 1000;
+    tau_max = 2.5E7;
     T_min = 0;
-    T_max = 10000;
+    T_max = 1E5;
 
     // Compute scales:
     scale_V0 = V0_max - V0_min;
