@@ -205,7 +205,7 @@ void run_fit(vector< vector<double> > & data)
     e_min = 0;
     e_max = 1;
     tau_min = 0;
-    tau_max = 2.5E7  * DAY_IN_SEC;
+    tau_max = 2.5E6  * DAY_IN_SEC;
     T_min = 0;
     T_max = 1E5  * DAY_IN_SEC;
     s_min = 0;
