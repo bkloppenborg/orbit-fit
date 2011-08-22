@@ -102,9 +102,9 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		// And now attempt to read in the line
 		try
 		{
-			t = atof(tokens[0].c_str());
+			t = atof(tokens[0].c_str()) * DAY_IN_SEC;
 			// Covert rv over to km/day
-			rv = atof(tokens[1].c_str()) * DAY_IN_SEC;
+			rv = atof(tokens[1].c_str());
 		}
 		catch(...)
 		{
@@ -114,7 +114,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		// Now do the RV, permit
 		try
 		{
-			e_rv = atof(tokens[2].c_str()) * DAY_IN_SEC;
+			e_rv = atof(tokens[2].c_str());
 		}
 		catch(...)
 		{
@@ -122,7 +122,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		}
 
 		if(e_rv == 0)
-			e_rv = default_error * DAY_IN_SEC;
+			e_rv = default_error;
 
 		// Enable if you want to see the data.
 		//printf("%f %f %f \n", t, rv, e_rv);
@@ -166,8 +166,9 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     			+ prior_e
     			+ 1.0 / log(tau) * prior_tau
     			+ 1.0 / log(T) * prior_T;
+    			+ 1.0 / log(s) * prior_s;
 
-    double s2 = s*s; // intrinsic noise due to star or whatever...
+    double s2 = s*s; // intrinsic noise due to star or whatever... in km/s
     double llike = (double) n_data / 2.0 * log(TWO_PI);
 
     // Now compute the contribution of loglike from the data - model:
@@ -204,9 +205,9 @@ void run_fit(vector< vector<double> > & data)
     e_min = 0;
     e_max = 1;
     tau_min = 0;
-    tau_max = 2.5E7;
+    tau_max = 2.5E7  * DAY_IN_SEC;
     T_min = 0;
-    T_max = 1E5;
+    T_max = 1E5  * DAY_IN_SEC;
     s_min = 0;
     s_max = 15;
 
