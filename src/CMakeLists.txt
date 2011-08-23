@@ -41,7 +41,7 @@ SET_TARGET_PROPERTIES(gendata PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(gendata orbit textio)
 
 file(GLOB FIT_RV_SOURCE fit_rv/*.cpp)
-add_executable(fitrv common.cpp ${FIT_RV_SOURCE})
+add_executable(fitrv common.cpp multinest_inf.cpp ${FIT_RV_SOURCE})
 SET_TARGET_PROPERTIES(fitrv PROPERTIES LINKER_LANGUAGE Fortran)
 target_link_libraries(fitrv orbit textio multinest ${MPI_LIBRARY} ${LAPACK_LIBRARIES})
 

@@ -7,6 +7,7 @@
  *  Common routines used among the subprograms
  */
 
+#include <cstring>
 #include "common.h"
 
 double DegToRad(double value)
