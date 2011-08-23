@@ -23,6 +23,9 @@
 
 #define TWO_PI 2*PI
 
+#define DAY_IN_SEC 24 * 60 * 60
+#define SEC_IN_DAY 1.0 / DAY_IN_SEC
+
 double DegToRad(double value);
 
 double MasToRad(double value);
