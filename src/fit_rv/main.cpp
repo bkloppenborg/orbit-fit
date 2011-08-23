@@ -152,8 +152,8 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     Cube[1] = omega * RAD_TO_DEG;
     Cube[2] = asini;
     Cube[3] = e;
-    Cube[4] = tau * SEC_IN_DAY;
-    Cube[5] = T * SEC_IN_DAY;
+    Cube[4] = tau;
+    Cube[5] = T;
     Cube[6] = s;
 
     // Compute a few things
