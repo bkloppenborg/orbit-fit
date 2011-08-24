@@ -100,7 +100,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		// And now attempt to read in the line
 		try
 		{
-			t = atof(tokens[0].c_str()) * DAY_IN_SEC;
+			t = atof(tokens[0].c_str()) * DAY_TO_SEC;
 			rv = atof(tokens[1].c_str());
 		}
 		catch(...)
@@ -202,9 +202,9 @@ void run_fit(vector< vector<double> > & data)
     e_min = 0;
     e_max = 1;
     tau_min = 0;
-    tau_max = 2.5E6  * DAY_IN_SEC;
+    tau_max = 2.5E6  * DAY_TO_SEC;
     T_min = 0;
-    T_max = 1E5  * DAY_IN_SEC;
+    T_max = 1E5  * DAY_TO_SEC;
     s_min = 0;
     s_max = 15;
 

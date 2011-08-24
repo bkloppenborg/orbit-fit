@@ -24,7 +24,7 @@
 #include "orbit.h"
 #include "common.h"
 
-#include "multinest.h"
+#include "multinest_inf.h"
 
 using namespace std;
 
@@ -58,6 +58,12 @@ double tau_max;
 double T_min;
 double T_max;
 
+double scale_x_0;
+double scale_y_0;
+double scale_mu_x;
+double scale_mu_y;
+double scale_pi;
+
 double scale_Omega;
 double scale_inc;
 double scale_omega;
@@ -66,6 +72,11 @@ double scale_e;
 double scale_tau;
 double scale_T;
 
+double prior_x_0;
+double prior_y_0;
+double prior_mu_x;
+double prior_mu_y;
+double prior_pi;
 double prior_Omega;
 double prior_inc;
 double prior_omega;
@@ -102,6 +113,9 @@ void read_data(string filename, string comment_chars, double default_error, vect
 
 	double t, x, y, e_x, e_y, P_alpha, P_delta;
 
+	// Now iterate through the lines and tokenize them.  Notice, we use vector.at(n) instead of vector[n]
+	// so that we can catch the signals from exceptions.  The data file is only parsed once so this is ok.
+
 	for (unsigned int i = 0; i < lines.size(); i++)
 	{
 		vector < string > tokens;
@@ -114,9 +128,9 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		// And now attempt to read in the line
 		try
 		{
-			t = atof(tokens[0].c_str()) * DAY_IN_SEC;
-			x = atof(tokens[1].c_str());
-			y = atof(tokens[2].c_str());
+			t = atof(tokens.at(0).c_str()) * DAY_TO_SEC;
+			x = atof(tokens.at(1).c_str());
+			y = atof(tokens.at(2).c_str());
 		}
 		catch(...)
 		{
@@ -126,7 +140,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		// Now for the uncertainties (these may not exist)
 		try
 		{
-			e_x = atof(tokens[3].c_str());
+			e_x = atof(tokens.at(3).c_str());
 		}
 		catch(...)
 		{
@@ -135,7 +149,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 
 		try
 		{
-			e_y = atof(tokens[4].c_str());
+			e_y = atof(tokens.at(4).c_str());
 		}
 		catch(...)
 		{
@@ -145,7 +159,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		// Lastly the parallax factors
 		try
 		{
-			P_alpha = atof(tokens[5].c_str());
+			P_alpha = atof(tokens.at(5).c_str());
 		}
 		catch(...)
 		{
@@ -154,7 +168,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 
 		try
 		{
-			P_delta = atof(tokens[6].c_str());
+			P_delta = atof(tokens.at(6).c_str());
 		}
 		catch(...)
 		{
@@ -185,27 +199,29 @@ void read_data(string filename, string comment_chars, double default_error, vect
 void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 {
 	// Local variables
-	double t, xi, e_xi, yi, e_yi, e_xyi;
+	double t, xi, e_xi, yi, e_yi, e_xyi, P_alpha, P_delta;
 	double x, y, z, err, dt;
 	bool fit_motion = (orbit_param_offset > 0);
+
+	double x_0, y_0, mu_x, mu_y, pi;
 
     // First extract the parameters, convert to real units:
 	if(fit_motion)
 	{
-		double x_0 = Cube[0] * scale_x_0;
-		double y_0 = Cube[1] * scale_y_0;
-		double mu_x = Cube[2] * scale_mu_x;
-		double mu_y = Cube[3] * scale_mu_y;
-		double pi = Cube[4] * scale_mu_py;
+		x_0 = Cube[0] * scale_x_0;
+		y_0 = Cube[1] * scale_y_0;
+		mu_x = Cube[2] * scale_mu_x;
+		mu_y = Cube[3] * scale_mu_y;
+		pi = Cube[4] * scale_pi;
 	}
 
-    double Omega = 	Cube[orbit_param_offset] * scale_Omega;
-    double inc = 	Cube[orbit_param_offset + 1] * scale_inc;
-    double omega = 	Cube[orbit_param_offset + 2] * scale_omega;
-    double alpha =	Cube[orbit_param_offset + 3] * scale_alpha;
-    double e = 		Cube[orbit_param_offset + 4] * scale_e;
-    double tau = 	Cube[orbit_param_offset + 5] * scale_tau;
-    double T = 		Cube[orbit_param_offset + 6] * scale_T;
+    double Omega = 	Cube[orbit_param_offset] * scale_Omega + Omega_min;
+    double inc = 	Cube[orbit_param_offset + 1] * scale_inc + inc_min;
+    double omega = 	Cube[orbit_param_offset + 2] * scale_omega + omega_min;
+    double alpha =	Cube[orbit_param_offset + 3] * scale_alpha + alpha_min;
+    double e = 		Cube[orbit_param_offset + 4] * scale_e + e_min;
+    double tau = 	Cube[orbit_param_offset + 5] * scale_tau + tau_min;
+    double T = 		Cube[orbit_param_offset + 6] * scale_T + T_min;
 
     // Now set the cube parameters:
     if(fit_motion)
@@ -217,16 +233,22 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 		Cube[4] = pi;
     }
 
-    Cube[orbit_param_offset] = Omega;
-    Cube[orbit_param_offset + 0] = inc;
-    Cube[orbit_param_offset + 1] = omega;
-    Cube[orbit_param_offset + 2] = alpha;
-    Cube[orbit_param_offset + 3] = e;
-    Cube[orbit_param_offset + 4] = tau;
-    Cube[orbit_param_offset + 5] = T;
+    Cube[orbit_param_offset] = Omega * RAD_TO_DEG;
+    Cube[orbit_param_offset + 1] = inc * RAD_TO_DEG;
+    Cube[orbit_param_offset + 2] = omega * RAD_TO_DEG;
+    Cube[orbit_param_offset + 3] = alpha;
+    Cube[orbit_param_offset + 4] = e;
+    Cube[orbit_param_offset + 5] = tau * SEC_TO_DAY;
+    Cube[orbit_param_offset + 6] = T * SEC_TO_DAY;
 
     // Compute a few things
-    double prior = 0;
+    double prior = prior_Omega
+    			+ prior_inc
+    			+ prior_omega
+    			+ 1.0 / alpha * prior_alpha
+    			+ prior_e
+    			+ 1.0 / tau * prior_tau
+    			+ 1.0 / T * prior_T;
 
     double llike = (double) n_data / 2.0 * log(TWO_PI);
 
@@ -241,7 +263,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
         P_alpha = data[i][5];
         P_delta = data[i][6];
 
-        e_xyi = e_x * e_x + e_y * e_y;
+        e_xyi = e_xi * e_xi + e_yi * e_yi;
 
         // Get the positions, compute the residuals.
         GetPositions(Omega, inc, omega, alpha, e, tau, T, t, x, y, z);
@@ -253,12 +275,13 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
         	y += y_0 + mu_y * dt + pi * P_delta;
         }
 
-        err = (x - xi) + (y - yi);
+        err = (x - xi)*(x - xi) + (y - yi)*(y - yi);
 
-        llike -= 0.5 * log(e_xyi) + (err * err) / (2 * e_xyi);
+        llike -= 0.5 * log(e_xyi) + (err) / (2 * e_xyi);
     }
 
-    //cout << omega << " " << asini << " " << e << " " << tau << " " << T << " " << llike << endl;
+    //cout << Omega << " " << inc << " " << omega << " " << alpha << " " << e << " " << tau << " " << T << " " << llike << endl;
+    //cout << x << " " << xi << " " << y << " " << yi << " " << err << endl;
 
 	// Assign the value and we're done.
 	*lnew = llike + prior;
@@ -268,9 +291,9 @@ void run_fit(vector< vector<double> > & data)
 {
 	// Setup the interface to multinest, run it.
 	x_0_min = 0;
-	x_0_max = 180 * RAD_PER_DEG;
-	y_0_min = -90 * RAD_PER_DEG;
-	y_0_max = 90 * RAD_PER_DEG;
+	x_0_max = 180 * DEG_TO_RAD;
+	y_0_min = -90 * DEG_TO_RAD;
+	y_0_max = 90 * DEG_TO_RAD;
 	mu_x_min = 0;
 	mu_x_max = MasToRad(20);
 	mu_y_min = 0;
@@ -280,18 +303,18 @@ void run_fit(vector< vector<double> > & data)
 
 	Omega_min = 0;
 	Omega_max = TWO_PI;
-	inc_min = -90 * RAD_PER_DEG;
-	inc_max = 90 * RAD_PER_DEG;
+	inc_min = 0 * DEG_TO_RAD;
+	inc_max = 90 * DEG_TO_RAD;
 	omega_min = 0;
 	omega_max = TWO_PI;
 	alpha_min = 0;
-	alpha_max = MasToRad(30);
+	alpha_max = 30;
 	e_min = 0;
 	e_max = 1;
-    tau_min = 0;
-    tau_max = 2.5E6  * DAY_IN_SEC;
-    T_min = 0;
-    T_max = 1E5  * DAY_IN_SEC;
+    tau_min = 0 * DAY_TO_SEC;
+    tau_max = 2.5E6  * DAY_TO_SEC;
+    T_min = 0 * DAY_TO_SEC;
+    T_max = 1E5  * DAY_TO_SEC;
 
     scale_x_0 = x_0_max - x_0_min;
     scale_y_0 = y_0_max - y_0_min;
@@ -314,7 +337,7 @@ void run_fit(vector< vector<double> > & data)
 	prior_Omega = 1.0 / scale_Omega;
 	prior_inc = 1.0 / scale_inc;
 	prior_omega = 1.0 / scale_omega;
-	prior_alpha = 1.0 / scale_alpha;
+	prior_alpha = 1.0 / log(alpha_max / alpha_min);
 	prior_e = 1.0 / scale_e;
 	prior_tau = 1.0 / log(tau_max / tau_min);
 	prior_T = 1.0 / log(T_max / T_min);
@@ -339,7 +362,8 @@ void run_fit(vector< vector<double> > & data)
 	for(int i = 0; i < ndims; i++)
 	    pWrap[i] = 0;
 
-	pWrap[1] = 1;   // omega
+	pWrap[orbit_param_offset]; 			// Omega
+	pWrap[orbit_param_offset + 2] = 1;   // omega
 
 	char root[100] = "chains/fitast-";		// root for output files
 	int seed = -1;					// random no. generator seed, if < 0 then take the seed from system clock
@@ -364,13 +388,17 @@ void run_fit(vector< vector<double> > & data)
 int main(int argc, char *argv[])
 {
     if(argc == 1)
-    {
+        print_help();
+
+	for (int i = 1; i < argc; i++)
+	{
 		// First see if the user is requesting help:
 		if(strcmp(argv[i], "-h") == 0)
 		{
-			PrintHelp();
+			print_help();
 			return 0;
 		}
+
 		// First see if the user is requesting help:
 		if(strcmp(argv[i], "-motion") == 0)
 		{
@@ -389,17 +417,19 @@ int main(int argc, char *argv[])
     // Each row should contain time, RV, [errors]
     const string comment_chars("\\#~$&£%");
 
-    int pos_size[] = {0, 12, 13, 6, 20, 4};
+//    int pos_size[] = {0, 12, 13, 6, 20, 4};
     vector< vector<int> > split_info;
-    for(int i = 0; i < 3; i++)
-    {
-    	vector<int> tmp;
-    	tmp.push_back(pos_size[2*i]);
-    	tmp.push_back(pos_size[2*i+1]);
-    	split_info.push_back(tmp);
-    }
+//    for(int i = 0; i < 3; i++)
+//    {
+//    	vector<int> tmp;
+//    	tmp.push_back(pos_size[2*i]);
+//    	tmp.push_back(pos_size[2*i+1]);
+//    	split_info.push_back(tmp);
+//    }
 
-    read_data(input_rv, comment_chars, 5, split_info, data);
+    double default_error = MasToRad(5.0);
+
+    read_data(input_rv, comment_chars, default_error, split_info, data);
 
     run_fit(data);
 

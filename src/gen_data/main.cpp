@@ -139,18 +139,18 @@ int main(int argc, char *argv[])
     string output_param = string(argv[3]);
 
     // Now generate some random orbital parameters.  Angular units in degrees for now.
-    double Omega = 45;
-    double inc = 20;
-    double omega = 90;
+    double Omega = 15;
+    double inc = 36;
+    double omega = 74;
     double a = 5.3E3;
     double alpha = 30;
     double e = 0.227;
-    double tau = 580;
+    double tau = 2.34567E6;
     double T = 9890;
 
     // How many data points?
     int n_data = 100;
-    double t_0 = 0;
+    double t_0 = 2.3E6;
     double dt = 100;
 
 	for (int i = 3; i < argc; i++)

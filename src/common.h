@@ -18,13 +18,13 @@
 
 #define DEG_TO_RAD PI / 180.0
 #define RAD_TO_DEG 180.0 / PI
-#define MAS_TO_RAD PI / 648000000
-#define RAD_TO_MAS 648000000 / PI
+#define MAS_TO_RAD 4.8481368E-9
+#define RAD_TO_MAS 1.0 / (4.8481368E-9)
 
 #define TWO_PI 2*PI
 
-#define DAY_IN_SEC 24 * 60 * 60
-#define SEC_IN_DAY 1.0 / DAY_IN_SEC
+#define DAY_TO_SEC (24 * 60 * 60)
+#define SEC_TO_DAY 1.0 / (24*60*60)
 
 double DegToRad(double value);
 

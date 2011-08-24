@@ -4,7 +4,8 @@ cmake_minimum_required(VERSION 2.8)
 # so we'll just keep with the fortran libraries.
 project (orbit_fit CXX Fortran)
 
-set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 
 if(${CMAKE_Fortran_COMPILER_ID} EQUAL "Intel")
     set(USING_INTEL True)
@@ -15,7 +16,7 @@ find_package(MPI)
 if(MPI_FOUND)
     include_directories(${MPI_INCLUDE_PATH})
     set(CMAKE_Fortran_COMPILER ${MPI_COMPILER})
-    set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS})
+    set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS} "-DMPI")
 endif(MPI_FOUND)
 
 # We need lapack, but the cluster doesn't have it installed in the
@@ -44,6 +45,11 @@ file(GLOB FIT_RV_SOURCE fit_rv/*.cpp)
 add_executable(fitrv common.cpp multinest_inf.cpp ${FIT_RV_SOURCE})
 SET_TARGET_PROPERTIES(fitrv PROPERTIES LINKER_LANGUAGE Fortran)
 target_link_libraries(fitrv orbit textio multinest ${MPI_LIBRARY} ${LAPACK_LIBRARIES})
+
+file(GLOB FIT_AST_SOURCE fit_astrometry/*.cpp)
+add_executable(fitast common.cpp multinest_inf.cpp ${FIT_AST_SOURCE})
+SET_TARGET_PROPERTIES(fitast PROPERTIES LINKER_LANGUAGE Fortran)
+target_link_libraries(fitast orbit textio multinest ${MPI_LIBRARY} ${LAPACK_LIBRARIES})
 
 #SET_TARGET_PROPERTIES(fit_rv PROPERTIES LINKER_LANGUAGE Fortran)
 
