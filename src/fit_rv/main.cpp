@@ -180,7 +180,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 
         tmp = e_rvi2 + s2;
 
-        llike -= 0.5 * log(tmp) + (V0+V-rvi)*(V0+V-rvi) / (2*tmp);
+        llike -= 0.5 * log(TWO_PI * tmp) + (V0+V-rvi)*(V0+V-rvi) / (2*tmp);
     }
 
     //cout << omega << " " << asini << " " << e << " " << tau << " " << T << " " << llike << endl;

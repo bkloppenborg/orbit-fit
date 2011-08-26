@@ -45,7 +45,7 @@ void NESTRUN(int *, int *, int *, double *,
     int *, int *, int *, int *, 
     int *, int *, double *, 
     void (*Loglike)(double *, int *, int *, double *), 
-    void (*dumper)(int *, int *, int *, double **, double **, double *, double *, double *), 
+    void (*dumper)(int *, int *, int *, double **, double **, double *, double *, double *, double *),
     int *context);
     
 #ifdef  __cplusplus

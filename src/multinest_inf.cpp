@@ -11,7 +11,7 @@
 using namespace std;
 
 void dumper(int *nSamples, int *nlive, int *nPar, double **physLive,
-    double **posterior, double *paramConstr, double *maxLogLike, double *logZ)
+    double **posterior, double *paramConstr, double *maxLogLike, double *logZ, double *logZerr)
 {
     // Do nothing.
 }
@@ -23,7 +23,7 @@ void run_multinest(int mmodal, int ceff, int nlive, double tol,
     int seed, int *pWrap, int fb, int resume,
     int outfile, int initMPI, double logZero,
     void (*LogLike)(double *, int *, int *, double *),
-    void (*dumper)(int *, int *, int *, double **, double **, double *, double *, double *),
+    void (*dumper)(int *, int *, int *, double **, double **, double *, double *, double *, double *),
     int context)
 {
     // Clear out the remaining characters in the string:

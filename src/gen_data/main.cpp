@@ -57,13 +57,13 @@ void GenerateData(double Omega, double inc, double omega, double a, double alpha
 		// TODO: This really isn't a good way of creating
 		// data with noise as we're assuming 6 mas error on positioning, and 0.1 km/s on RV
 		sig = Rangauss(random_seed);
-		s_x = MasToRad(6) * sig;
-		s_y = MasToRad(6) * sig;
+		s_x = MasToRad(3) * sig;
+		s_y = MasToRad(3) * sig;
 		s_rv = 0.1 * sig;
 
-		positions[i][0] = x + s_x * Rangauss(random_seed);
+		positions[i][0] = x; // + s_x * Rangauss(random_seed);
 		positions[i][1] = fabs(s_x);
-		positions[i][2] = y + s_y * Rangauss(random_seed);
+		positions[i][2] = y; // + s_y * Rangauss(random_seed);
 		positions[i][3] = fabs(s_y);
 
 		velocities[i][0] = rv + s_rv * Rangauss(random_seed);
@@ -139,9 +139,9 @@ int main(int argc, char *argv[])
     string output_param = string(argv[3]);
 
     // Now generate some random orbital parameters.  Angular units in degrees for now.
-    double Omega = 15;
+    double Omega = 0;
     double inc = 36;
-    double omega = 74;
+    double omega = 0;
     double a = 5.3E3;
     double alpha = 30;
     double e = 0.227;
