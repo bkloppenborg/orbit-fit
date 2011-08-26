@@ -199,24 +199,48 @@ void read_data(string filename, string comment_chars, double default_error, vect
 void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 {
 	// Local variables
-	double t, xi, e_xi, yi, e_yi, e_xyi, P_alpha, P_delta, e_xi2, e_yi2;
+	double t, xi, e_xi, yi, e_yi, P_alpha, P_delta;
 	double x, y, z, err, dt;
+	double e_xi2, e_yi2;
+	bool fit_motion = (orbit_param_offset > 0);
 
-    double Omega = 	Cube[orbit_param_offset] * TWO_PI; //scale_Omega + Omega_min;
-    double inc = 	Cube[orbit_param_offset + 1] * PI / 2;// * scale_inc + inc_min;
-    double omega = 	Cube[orbit_param_offset + 2] * TWO_PI;// * scale_omega + omega_min;
-    double alpha =	Cube[orbit_param_offset + 3] * 40;
-    double e = 		0.227; //Cube[orbit_param_offset + 4];
-    double tau = 	2.34567E6; //Cube[orbit_param_offset + 5] * scale_tau + tau_min;
-    double T = 		9890; //Cube[orbit_param_offset + 6] * scale_T + T_min;
+	double x_0, y_0, mu_x, mu_y, pi;
+
+    // First extract the parameters, convert to real units:
+	if(fit_motion)
+	{
+		x_0 = Cube[0] * scale_x_0;
+		y_0 = Cube[1] * scale_y_0;
+		mu_x = Cube[2] * scale_mu_x;
+		mu_y = Cube[3] * scale_mu_y;
+		pi = Cube[4] * scale_pi;
+	}
+
+    double Omega = 	Cube[orbit_param_offset] * scale_Omega + Omega_min;
+    double inc = 	Cube[orbit_param_offset + 1] * scale_inc + inc_min;
+    double omega = 	Cube[orbit_param_offset + 2] * scale_omega + omega_min;
+    double alpha =	Cube[orbit_param_offset + 3] * scale_alpha + alpha_min;
+    double e = 		Cube[orbit_param_offset + 4] * scale_e + e_min;
+    double tau = 	Cube[orbit_param_offset + 5] * scale_tau + tau_min;
+    double T = 		Cube[orbit_param_offset + 6] * scale_T + T_min;
+
+    // Now set the cube parameters:
+    if(fit_motion)
+    {
+		Cube[0] = x_0;
+		Cube[1] = y_0;
+		Cube[2] = mu_x;
+		Cube[3] = mu_y;
+		Cube[4] = pi;
+    }
 
     Cube[orbit_param_offset] = Omega * RAD_TO_DEG;
     Cube[orbit_param_offset + 1] = inc * RAD_TO_DEG;
     Cube[orbit_param_offset + 2] = omega * RAD_TO_DEG;
     Cube[orbit_param_offset + 3] = alpha;
-    //Cube[orbit_param_offset + 4] = e;
-    //Cube[orbit_param_offset + 5] = tau * SEC_TO_DAY;
-    //Cube[orbit_param_offset + 6] = T * SEC_TO_DAY;
+    Cube[orbit_param_offset + 4] = e;
+    Cube[orbit_param_offset + 5] = tau * SEC_TO_DAY;
+    Cube[orbit_param_offset + 6] = T * SEC_TO_DAY;
 
     // Compute a few things
     double prior = prior_Omega
@@ -227,11 +251,9 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     			+ 1.0 / tau * prior_tau
     			+ 1.0 / T * prior_T;
 
-    double llike = 0.0; //(double) n_data / 2.0 * log(TWO_PI);
+    double llike = (double) n_data / 2.0 * log(TWO_PI);
 
     // Now compute the contribution of loglike from the data - model:
-    // here we use the multivariate normal distribution
-    // http://en.wikipedia.org/wiki/Multivariate_normal_distribution
     for(int i = 0; i < n_data; i++)
     {
         t = data[i][0];
@@ -248,19 +270,21 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
         // Get the positions, compute the residuals.
         GetPositions(Omega, inc, omega, alpha, e, tau, T, t, x, y, z);
 
-        // Lastly compute
-        llike -= log(TWO_PI * e_xi * e_yi) +
-        		(xi - x) * (xi - x) / (2 * e_xi2) +
-        		(yi - y) * (yi - y) / (2 * e_yi2);
+        if(fit_motion)
+        {
+        	dt = t - tau;
+        	x += x_0 + mu_x * dt + pi * P_alpha;
+        	y += y_0 + mu_y * dt + pi * P_delta;
+        }
 
-        //cout << xi << " " << e_xi << " " << yi << " " << e_yi << endl;
+        llike -= 0.5 * log(TWO_PI * e_xi * e_yi) + (x - xi)*(x - xi) / (2 * e_xi2) + (y - yi)*(y - yi) / (2 * e_yi2);
     }
 
     //cout << Omega << " " << inc << " " << omega << " " << alpha << " " << e << " " << tau << " " << T << " " << llike << endl;
     //cout << x << " " << xi << " " << y << " " << yi << " " << err << endl;
 
 	// Assign the value and we're done.
-	*lnew = llike; // + prior;
+	*lnew = llike + prior;
 }
 
 void run_fit(vector< vector<double> > & data)
@@ -284,12 +308,12 @@ void run_fit(vector< vector<double> > & data)
 	omega_min = 0;
 	omega_max = TWO_PI;
 	alpha_min = 0;
-	alpha_max = 40;
+	alpha_max = 30;
 	e_min = 0;
 	e_max = 1;
-    tau_min = 2.3E6 * DAY_TO_SEC;
+    tau_min = 0 * DAY_TO_SEC;
     tau_max = 2.5E6  * DAY_TO_SEC;
-    T_min = 1E3 * DAY_TO_SEC;
+    T_min = 0 * DAY_TO_SEC;
     T_max = 1E5  * DAY_TO_SEC;
 
     scale_x_0 = x_0_max - x_0_min;
@@ -310,7 +334,6 @@ void run_fit(vector< vector<double> > & data)
     prior_mu_x = 1.0 / scale_mu_x;
     prior_mu_y = 1.0 / scale_mu_y;
     prior_pi = 1.0 / scale_pi;
-
 	prior_Omega = 1.0 / scale_Omega;
 	prior_inc = 1.0 / scale_inc;
 	prior_omega = 1.0 / scale_omega;
@@ -328,9 +351,9 @@ void run_fit(vector< vector<double> > & data)
 	int nlive = 1000;				// number of live points
 	double efr = 1.0;				// set the required efficiency
 	double tol = 0.5;				// tol, defines the stopping criteria
-	int ndims = 4 + orbit_param_offset;					// dimensionality (no. of free parameters)
-	int nPar = 4 + orbit_param_offset;					// total no. of parameters including free & derived parameters
-	int nClsPar = 4 + orbit_param_offset;				// no. of parameters to do mode separation on
+	int ndims = 7 + orbit_param_offset;					// dimensionality (no. of free parameters)
+	int nPar = 7 + orbit_param_offset;					// total no. of parameters including free & derived parameters
+	int nClsPar = 7 + orbit_param_offset;				// no. of parameters to do mode separation on
 	int updInt = 100;				// after how many iterations feedback is required & the output files should be updated
 									// note: posterior files are updated & dumper routine is called after every updInt*10 iterations
 	double Ztol = -1E90;			// all the modes with logZ < Ztol are ignored
