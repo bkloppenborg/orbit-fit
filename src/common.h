@@ -25,6 +25,8 @@
 
 #define DAY_TO_SEC (24 * 60 * 60)
 #define SEC_TO_DAY 1.0 / (24*60*60)
+#define YEAR_TO_SEC 31556926.
+#define SEC_TO_YEAR 1.0 / (YEAR_TO_SEC)
 
 double DegToRad(double value);
 

@@ -88,7 +88,7 @@ int n_data;
 
 // Optional parameters
 // orbit_param_offset = 0 -> don't fit zero point, proper motion, parallax, etc.  Other valid value = 5.
-int orbit_param_offset = 0;
+int opt_params = 0;
 
 bool fit_motion = false;
 
@@ -211,45 +211,45 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	double t, xi, e_xi, yi, e_yi, P_alpha, P_delta;
 	double x, y, z, err, dt;
 	double e_xi2, e_yi2;
-	bool fit_motion = (orbit_param_offset > 0);
 
+	// Used only if -motion is specified on the command line.
 	double x_0, y_0, mu_x, mu_y, pi;
 
     // First extract the parameters, convert to real units:
+    double Omega = 	Cube[0] * scale_Omega + Omega_min;
+    double inc = 	Cube[1] * scale_inc + inc_min;
+    double omega = 	Cube[2] * scale_omega + omega_min;
+    double alpha =	Cube[3] * scale_alpha + alpha_min;
+    double e = 		Cube[4] * scale_e + e_min;
+    double tau = 	Cube[5] * scale_tau + tau_min;
+    double T = 		Cube[6] * scale_T + T_min;
+
 	if(fit_motion)
 	{
-		x_0 = Cube[0] * scale_x_0;
-		y_0 = Cube[1] * scale_y_0;
-		mu_x = Cube[2] * scale_mu_x;
-		mu_y = Cube[3] * scale_mu_y;
-		pi = Cube[4] * scale_pi;
+		x_0 = Cube[7] * scale_x_0 + x_0_min;
+		y_0 = Cube[8] * scale_y_0 + y_0_min;
+		mu_x = Cube[9] * scale_mu_x + mu_x_min;
+		mu_y = Cube[10] * scale_mu_y + mu_y_min;
+		pi = Cube[11] * scale_pi + pi_min;
 	}
 
-    double Omega = 	Cube[orbit_param_offset] * scale_Omega + Omega_min;
-    double inc = 	Cube[orbit_param_offset + 1] * scale_inc + inc_min;
-    double omega = 	Cube[orbit_param_offset + 2] * scale_omega + omega_min;
-    double alpha =	Cube[orbit_param_offset + 3] * scale_alpha + alpha_min;
-    double e = 		Cube[orbit_param_offset + 4] * scale_e + e_min;
-    double tau = 	Cube[orbit_param_offset + 5] * scale_tau + tau_min;
-    double T = 		Cube[orbit_param_offset + 6] * scale_T + T_min;
-
     // Now set the cube parameters:
+    Cube[0] = Omega * RAD_TO_DEG;
+    Cube[1] = inc * RAD_TO_DEG;
+    Cube[2] = omega * RAD_TO_DEG;
+    Cube[3] = alpha;
+    Cube[4] = e;
+    Cube[5] = tau * SEC_TO_DAY;
+    Cube[6] = T * SEC_TO_DAY;
+
     if(fit_motion)
     {
-		Cube[0] = x_0;
-		Cube[1] = y_0;
-		Cube[2] = mu_x;
-		Cube[3] = mu_y;
-		Cube[4] = pi;
+		Cube[7] = x_0;
+		Cube[8] = y_0;
+		Cube[9] = mu_x;
+		Cube[10] = mu_y;
+		Cube[11] = pi;
     }
-
-    Cube[orbit_param_offset] = Omega * RAD_TO_DEG;
-    Cube[orbit_param_offset + 1] = inc * RAD_TO_DEG;
-    Cube[orbit_param_offset + 2] = omega * RAD_TO_DEG;
-    Cube[orbit_param_offset + 3] = alpha;
-    Cube[orbit_param_offset + 4] = e;
-    Cube[orbit_param_offset + 5] = tau * SEC_TO_DAY;
-    Cube[orbit_param_offset + 6] = T * SEC_TO_DAY;
 
     // Compute a few things
     double prior = prior_Omega
@@ -321,8 +321,6 @@ void run_fit(vector< vector<double> > & data)
     	printf("pi:    %f %f \n", pi_min, pi_max);
     }
 
-
-
     scale_x_0 = x_0_max - x_0_min;
     scale_y_0 = y_0_max - y_0_min;
     scale_mu_x = mu_x_max - mu_x_min;
@@ -354,7 +352,7 @@ void run_fit(vector< vector<double> > & data)
 
     // Check the optional parameters:
     if(fit_motion)
-    	orbit_param_offset = 5;
+    	opt_params += 5;
 
 	// set the MultiNest sampling parameters
 	int mmodal = 1;					// do mode separation?
@@ -362,9 +360,9 @@ void run_fit(vector< vector<double> > & data)
 	int nlive = 1000;				// number of live points
 	double efr = 1.0;				// set the required efficiency
 	double tol = 0.5;				// tol, defines the stopping criteria
-	int ndims = 7 + orbit_param_offset;					// dimensionality (no. of free parameters)
-	int nPar = 7 + orbit_param_offset;					// total no. of parameters including free & derived parameters
-	int nClsPar = 7 + orbit_param_offset;				// no. of parameters to do mode separation on
+	int ndims = 7 + opt_params;					// dimensionality (no. of free parameters)
+	int nPar = 7 + opt_params;					// total no. of parameters including free & derived parameters
+	int nClsPar = 7 + opt_params;				// no. of parameters to do mode separation on
 	int updInt = 100;				// after how many iterations feedback is required & the output files should be updated
 									// note: posterior files are updated & dumper routine is called after every updInt*10 iterations
 	double Ztol = -1E90;			// all the modes with logZ < Ztol are ignored
@@ -373,8 +371,8 @@ void run_fit(vector< vector<double> > & data)
 	for(int i = 0; i < ndims; i++)
 	    pWrap[i] = 0;
 
-	pWrap[orbit_param_offset]; 			// Omega
-	pWrap[orbit_param_offset + 2] = 1;   // omega
+	pWrap[0] = 1;	// Omega
+	pWrap[2] = 1;   // omega
 
 	char root[100] = "chains/fitast-";		// root for output files
 	int seed = -1;					// random no. generator seed, if < 0 then take the seed from system clock
@@ -394,6 +392,70 @@ void run_fit(vector< vector<double> > & data)
 	log_likelihood, dumper, context);
 }
 
+// Parse command-line options that are specific to this program
+void ParseProgOptions(int argc, char *argv[], bool param_error)
+{
+	// Init values:
+	mu_x_min = 0;
+	mu_x_max = 20 * SEC_TO_YEAR;
+	mu_y_min = 0;
+	mu_y_max = 20 * SEC_TO_YEAR;
+	pi_min = 0;
+	pi_max = 10;
+
+	for (int i = 1; i < argc; i++)
+	{
+		// First see if the user is requesting help:
+		if(strcmp(argv[i], "-h") == 0)
+		{
+			print_help();
+			param_error = true;
+		}
+
+		// First see if the user is requesting help:
+		if(strcmp(argv[i], "-motion") == 0)
+		{
+			printf("NOTE: Fitting zero points, proper motions, and parallax.\n");
+			fit_motion = true;
+		}
+
+		if(strcmp(argv[i], "-mu_x_min") == 0)
+		{
+			mu_x_min = atof(argv[i+1]) * SEC_TO_YEAR;
+		}
+
+		if(strcmp(argv[i], "-mu_x_max") == 0)
+		{
+			mu_x_max = atof(argv[i+1]) * SEC_TO_YEAR;
+		}
+
+		if(strcmp(argv[i], "-mu_y_min") == 0)
+		{
+			mu_y_min = atof(argv[i+1]) * SEC_TO_YEAR;
+		}
+
+		if(strcmp(argv[i], "-mu_y_max") == 0)
+		{
+			mu_y_max = atof(argv[i+1]) * SEC_TO_YEAR;
+		}
+
+		if(strcmp(argv[i], "-pi_min") == 0)
+		{
+			pi_min = atof(argv[i+1]);
+		}
+
+		if(strcmp(argv[i], "-pi_max") == 0)
+		{
+			pi_max = atof(argv[i+1]);
+		}
+
+		// TODO: Add in parameter that will convert native units over to radians or something more
+		// convenient than native units.  For now, assume input is in degrees.
+
+
+    }
+}
+
 // The main routine.  Basically just used to parse out some parameters before handing
 // things off to other functions.
 int main(int argc, char *argv[])
@@ -404,15 +466,9 @@ int main(int argc, char *argv[])
 
 	// Init globals:
 	x_0_min = 0;
-	x_0_max = 180 * DEG_TO_RAD;
+	x_0_max = TWO_PI;
 	y_0_min = -90 * DEG_TO_RAD;
 	y_0_max = 90 * DEG_TO_RAD;
-	mu_x_min = 0;
-	mu_x_max = MasToRad(20);
-	mu_y_min = 0;
-	mu_y_max = MasToRad(20);
-	pi_min = 0;
-	pi_max = MasToRad(10);
 
 	// First parse command line arguments that are only for this program:
     if(argc == 1)
@@ -421,22 +477,7 @@ int main(int argc, char *argv[])
     if(argc < 2)
     	cout << "Missing filename on command line";
 
-	for (int i = 1; i < argc; i++)
-	{
-		// First see if the user is requesting help:
-		if(strcmp(argv[i], "-h") == 0)
-		{
-			print_help();
-			return 0;
-		}
-
-		// First see if the user is requesting help:
-		if(strcmp(argv[i], "-motion") == 0)
-		{
-			printf("NOTE: Fitting zero points, proper motions, and parallax.\n");
-			fit_motion = true;
-		}
-    }
+	ParseProgOptions(argc, argv, param_error);
 
     // Read in the input filename:
     string input_rv = string(argv[1]);
