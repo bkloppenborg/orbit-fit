@@ -45,7 +45,7 @@ double RadToMas(double value)
 *      tau:    Time of periestron passage (units of time)
 *      T:      Orbital Period (same units as tau)
 */
-int ParseCommandLine(int argc, char *argv[],
+void ParseCommandLine(int argc, char *argv[],
 		double & Omega_min, double & Omega_max, double & inc_min, double & inc_max,
 		double & omega_min, double & omega_max, double & asini_min, double & asini_max,
 		double & alpha_min, double & alpha_max, double & e_min, double & e_max,

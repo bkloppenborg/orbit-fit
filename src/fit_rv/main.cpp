@@ -151,11 +151,11 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 
     // First extract the parameters, convert to real units:
 	double V0 = Cube[0] * scale_V0 + V0_min;
-    double omega = Cube[1] * scale_omega;
-    double asini = Cube[2] * scale_asini;
-    double e = Cube[3]; // not scaled
-    double tau = Cube[4] * scale_tau;
-    double T = Cube[5] * scale_T;
+    double omega = Cube[1] * scale_omega + omega_min;
+    double asini = Cube[2] * scale_asini + asini_min;
+    double e = Cube[3] * scale_e + e_min;
+    double tau = Cube[4] * scale_tau + tau_min;
+    double T = Cube[5] * scale_T + T_min;
 
     if(fit_turbulence)
     	s = Cube[6] * scale_s;
