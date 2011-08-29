@@ -299,31 +299,29 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 void run_fit(vector< vector<double> > & data)
 {
 	// Setup the interface to multinest, run it.
-	x_0_min = 0;
-	x_0_max = 180 * DEG_TO_RAD;
-	y_0_min = -90 * DEG_TO_RAD;
-	y_0_max = 90 * DEG_TO_RAD;
-	mu_x_min = 0;
-	mu_x_max = MasToRad(20);
-	mu_y_min = 0;
-	mu_y_max = MasToRad(20);
-	pi_min = 0;
-	pi_max = MasToRad(10);
 
-	Omega_min = 0;
-	Omega_max = TWO_PI;
-	inc_min = 0 * DEG_TO_RAD;
-	inc_max = 90 * DEG_TO_RAD;
-	omega_min = 0;
-	omega_max = TWO_PI;
-	alpha_min = 0;
-	alpha_max = 30;
-	e_min = 0;
-	e_max = 1;
-    tau_min = 0 * DAY_TO_SEC;
-    tau_max = 2.5E6  * DAY_TO_SEC;
-    T_min = 0 * DAY_TO_SEC;
-    T_max = 1E5  * DAY_TO_SEC;
+	// Print out what parameters are being used here:
+	printf("Starting fit with the following limits: \n");
+	printf("Param: Min Max\n");
+	printf("Omega: %f %f \n", Omega_min * RAD_TO_DEG, Omega_max * RAD_TO_DEG);
+	printf("inc:   %f %f \n", inc_min * RAD_TO_DEG, inc_max * RAD_TO_DEG);
+	printf("omega: %f %f \n", omega_min * RAD_TO_DEG, omega_max * RAD_TO_DEG);
+	printf("alpha: %f %f \n", alpha_min,alpha_max);
+	printf("e:     %f %f \n", e_min, e_max);
+	printf("tau:   %e %e \n", tau_min * SEC_TO_DAY, tau_max * SEC_TO_DAY);
+	printf("T:     %e %e \n", T_min * SEC_TO_DAY, T_max * SEC_TO_DAY);
+
+	// Now spit out the optional parameters, if used.
+    if(fit_motion)
+    {
+    	printf("x_0:   %f %f \n", x_0_min, x_0_max);
+    	printf("y_0:   %f %f \n", y_0_min, y_0_max);
+    	printf("mu_x:  %f %f \n", mu_x_min, mu_x_max);
+    	printf("mu_y:  %f %f \n", mu_y_min, mu_y_max);
+    	printf("pi:    %f %f \n", pi_min, pi_max);
+    }
+
+
 
     scale_x_0 = x_0_max - x_0_min;
     scale_y_0 = y_0_max - y_0_min;
@@ -400,9 +398,23 @@ void run_fit(vector< vector<double> > & data)
 // things off to other functions.
 int main(int argc, char *argv[])
 {
+	// Init/allocate locals:
 	double tmp;
 	bool param_error = false;
 
+	// Init globals:
+	x_0_min = 0;
+	x_0_max = 180 * DEG_TO_RAD;
+	y_0_min = -90 * DEG_TO_RAD;
+	y_0_max = 90 * DEG_TO_RAD;
+	mu_x_min = 0;
+	mu_x_max = MasToRad(20);
+	mu_y_min = 0;
+	mu_y_max = MasToRad(20);
+	pi_min = 0;
+	pi_max = MasToRad(10);
+
+	// First parse command line arguments that are only for this program:
     if(argc == 1)
         print_help();
 
@@ -429,6 +441,7 @@ int main(int argc, char *argv[])
     // Read in the input filename:
     string input_rv = string(argv[1]);
 
+    // Parse remaining, common parameters.
     ParseCommandLine(argc, argv, Omega_min, Omega_max, inc_min, inc_max, omega_min, omega_max, tmp, tmp,
     		alpha_min, alpha_max, e_min, e_max, tau_min, tau_max, T_min, T_max, param_error);
 

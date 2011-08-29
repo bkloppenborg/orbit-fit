@@ -215,18 +215,23 @@ void run_fit(vector< vector<double> > & data)
     // TODO: Read in these limits from elsewhere
 	V0_min = -10;
 	V0_max = 10;
-    omega_min = 0;
-    omega_max = TWO_PI;
-    asini_min = 1;
-    asini_max = 1E10;
-    e_min = 0;
-    e_max = 1;
-    tau_min = 2.5E3 * DAY_TO_SEC;
-    tau_max = 2.5E6  * DAY_TO_SEC;
-    T_min = 1 * DAY_TO_SEC;
-    T_max = 1E5  * DAY_TO_SEC;
     s_min = 0;
     s_max = 15;
+
+	// Print out what parameters are being used here:
+	printf("Starting fit with the following limits: \n");
+	printf("Param: Min Max\n");
+	printf("omega: %3.2f %3.2f \n", omega_min * RAD_TO_DEG, omega_max * RAD_TO_DEG);
+	printf("asini: %e %e \n", asini_min, asini_max);
+	printf("e:     %1.3f %1.3f \n", e_min, e_max);
+	printf("tau:   %e %e \n", tau_min * SEC_TO_DAY, tau_max * SEC_TO_DAY);
+	printf("T:     %e %e \n", T_min * SEC_TO_DAY, T_max * SEC_TO_DAY);
+
+	// Now spit out the optional parameters, if used.
+	printf("gamma: %f %f \n", V0_min, V0_max);
+
+	if(fit_turbulence)
+		printf("turb:  %f %f \n", s_min, s_max);
 
     // Compute scales:
     scale_V0 = V0_max - V0_min;
