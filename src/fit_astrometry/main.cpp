@@ -246,8 +246,8 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     {
 		Cube[7] = x_0;
 		Cube[8] = y_0;
-		Cube[9] = mu_x;
-		Cube[10] = mu_y;
+		Cube[9] = mu_x * YEAR_TO_SEC;
+		Cube[10] = mu_y * YEAR_TO_SEC;
 		Cube[11] = pi;
     }
 
