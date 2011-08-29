@@ -4,12 +4,8 @@ cmake_minimum_required(VERSION 2.8)
 # so we'll just keep with the fortran libraries.
 project (orbit_fit CXX Fortran)
 
-#set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_BUILD_TYPE Debug)
-
-if(${CMAKE_Fortran_COMPILER_ID} EQUAL "Intel")
-    set(USING_INTEL True)
-endif()
+set(CMAKE_BUILD_TYPE Release)
+#set(CMAKE_BUILD_TYPE Debug)
 
 set(MPI_COMPILER mpif90)
 find_package(MPI)
@@ -51,6 +47,3 @@ add_executable(fitast common.cpp multinest_inf.cpp ${FIT_AST_SOURCE})
 SET_TARGET_PROPERTIES(fitast PROPERTIES LINKER_LANGUAGE Fortran)
 target_link_libraries(fitast orbit textio multinest ${MPI_LIBRARY} ${LAPACK_LIBRARIES})
 
-#SET_TARGET_PROPERTIES(fit_rv PROPERTIES LINKER_LANGUAGE Fortran)
-
-#target_link_libraries(fit_rv ${LIBS})

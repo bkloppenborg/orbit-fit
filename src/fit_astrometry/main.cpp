@@ -29,8 +29,6 @@
 using namespace std;
 
 // Global Variables (scales and (sometimes partial) priors:
-// orbit_param_offset = 0 -> don't fit zero point, proper motion, parallax, etc.  Other valid value = 5.
-int orbit_param_offset = 0;
 
 double x_0_min;
 double x_0_max;
@@ -88,6 +86,13 @@ double prior_T;
 vector< vector<double> > data;
 int n_data;
 
+// Optional parameters
+// orbit_param_offset = 0 -> don't fit zero point, proper motion, parallax, etc.  Other valid value = 5.
+int orbit_param_offset = 0;
+
+bool fit_motion = false;
+
+
 // Prints out help describing the options on the command line
 void print_help()
 {
@@ -97,9 +102,13 @@ void print_help()
 	" fitast input_file \n"
 	" \n"
 	"Optional Arguments: \n"
-	" -h     	Prints this message \n"
-	" -motion 	Fits zero points, proper motion, parallax in addition\n"
-	"			to normal orbital parameters.\n"
+	" -h        Prints this message \n"
+	" -motion   Fits zero points, proper motion, parallax in addition\n"
+	"           to normal orbital parameters.\n"
+	"Overriding Limits: \n"
+	" Omega, inc, omega, alpha, e, tau, T \n"
+	" -*_min    Override lower bound on above parameter \n"
+	" -*_max    Override upper bound on above parameter \n"
 	"";
 
 	cout << usage << "\n";
@@ -345,6 +354,10 @@ void run_fit(vector< vector<double> > & data)
     n_data = data.size();
     printf("Found %i data points.\n", n_data);
 
+    // Check the optional parameters:
+    if(fit_motion)
+    	orbit_param_offset = 5;
+
 	// set the MultiNest sampling parameters
 	int mmodal = 1;					// do mode separation?
 	int ceff = 0;					// run in constant efficiency mode?
@@ -387,8 +400,14 @@ void run_fit(vector< vector<double> > & data)
 // things off to other functions.
 int main(int argc, char *argv[])
 {
+	double tmp;
+	bool param_error = false;
+
     if(argc == 1)
         print_help();
+
+    if(argc < 2)
+    	cout << "Missing filename on command line";
 
 	for (int i = 1; i < argc; i++)
 	{
@@ -403,15 +422,18 @@ int main(int argc, char *argv[])
 		if(strcmp(argv[i], "-motion") == 0)
 		{
 			printf("NOTE: Fitting zero points, proper motions, and parallax.\n");
-			orbit_param_offset = 5;
+			fit_motion = true;
 		}
     }
 
-    if(argc < 2)
-    	cout << "Missing filename on command line";
-
     // Read in the input filename:
     string input_rv = string(argv[1]);
+
+    ParseCommandLine(argc, argv, Omega_min, Omega_max, inc_min, inc_max, omega_min, omega_max, tmp, tmp,
+    		alpha_min, alpha_max, e_min, e_max, tau_min, tau_max, T_min, T_max, param_error);
+
+    if(param_error)
+    	return 0;
 
     // Read in the file of RV data.
     // Each row should contain time, RV, [errors]

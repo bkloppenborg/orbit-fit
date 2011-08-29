@@ -139,9 +139,9 @@ int main(int argc, char *argv[])
     string output_param = string(argv[3]);
 
     // Now generate some random orbital parameters.  Angular units in degrees for now.
-    double Omega = 0;
+    double Omega = 123;
     double inc = 36;
-    double omega = 0;
+    double omega = 250;
     double a = 5.3E3;
     double alpha = 30;
     double e = 0.227;

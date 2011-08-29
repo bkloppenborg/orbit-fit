@@ -34,4 +34,11 @@ double RadToDeg(double value);
 
 double RadToMas(double value);
 
+int ParseCommandLine(int argc, char *argv[],
+		double & Omega_min, double & Omega_max, double & inc_min, double & inc_max,
+		double & omega_min, double & omega_max, double & asini_min, double & asini_max,
+		double & alpha_min, double & alpha_max, double & e_min, double & e_max,
+		double & tau_min, double & tau_max, double & T_min, double & T_max,
+		bool & param_error);
+
 #endif //COMMON_H

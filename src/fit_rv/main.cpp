@@ -63,6 +63,10 @@ double prior_s;
 vector< vector<double> > data;
 int n_data;
 
+// Optional parameters
+int other_params = 0;
+bool fit_turbulence = false;
+
 // Prints out help describing the options on the command line
 void print_help()
 {
@@ -72,7 +76,13 @@ void print_help()
 	" fitrv input_file \n"
 	" \n"
 	"Optional Arguments: \n"
-	" -h     Prints this message \n"
+	" -h        Prints this message \n"
+	" -turb     Include Atmospheric Turbulence component as a Gaussian \n"
+	"           in the fitting routines. \n"
+	"Overriding Limits: \n"
+	" omega, asini, e, tau, T \n"
+	" -*_min    Override lower bound on above parameter \n"
+	" -*_max    Override upper bound on above parameter \n"
 	"";
 
 	cout << usage << "\n";
@@ -137,6 +147,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 {
 	// Local variables
 	double t, V, rvi, e_rvi, e_rvi2, tmp;
+	double s;
 
     // First extract the parameters, convert to real units:
 	double V0 = Cube[0] * scale_V0 + V0_min;
@@ -145,16 +156,20 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     double e = Cube[3]; // not scaled
     double tau = Cube[4] * scale_tau;
     double T = Cube[5] * scale_T;
-    double s = Cube[6] * scale_s;
+
+    if(fit_turbulence)
+    	s = Cube[6] * scale_s;
 
     // Now set the cube parameters:
     Cube[0] = V0;
     Cube[1] = omega * RAD_TO_DEG;
     Cube[2] = asini;
     Cube[3] = e;
-    Cube[4] = tau;
-    Cube[5] = T;
-    Cube[6] = s;
+    Cube[4] = tau * SEC_TO_DAY;
+    Cube[5] = T * SEC_TO_DAY;
+
+    if(fit_turbulence)
+    	Cube[6] = s;
 
     // Compute a few things
     double prior = prior_V0
@@ -178,9 +193,14 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
         GetRV(omega, asini, e, tau, T, t, V);
         e_rvi2 = e_rvi * e_rvi;
 
-        tmp = e_rvi2 + s2;
+        if(fit_turbulence)
+        	tmp = e_rvi2 + s2;
+        else
+        	tmp = e_rvi2;
 
-        llike -= 0.5 * log(TWO_PI * tmp) + (V0+V-rvi)*(V0+V-rvi) / (2*tmp);
+        V += V0;
+
+        llike -= 0.5 * log(TWO_PI * tmp) + (V-rvi)*(V-rvi) / (2*tmp);
     }
 
     //cout << omega << " " << asini << " " << e << " " << tau << " " << T << " " << llike << endl;
@@ -197,13 +217,13 @@ void run_fit(vector< vector<double> > & data)
 	V0_max = 10;
     omega_min = 0;
     omega_max = TWO_PI;
-    asini_min = 0;
+    asini_min = 1;
     asini_max = 1E10;
     e_min = 0;
     e_max = 1;
-    tau_min = 0;
+    tau_min = 2.5E3 * DAY_TO_SEC;
     tau_max = 2.5E6  * DAY_TO_SEC;
-    T_min = 0;
+    T_min = 1 * DAY_TO_SEC;
     T_max = 1E5  * DAY_TO_SEC;
     s_min = 0;
     s_max = 15;
@@ -231,6 +251,10 @@ void run_fit(vector< vector<double> > & data)
     n_data = data.size();
     printf("Found %i data points.\n", n_data);
 
+    // Check the optional parameters before running the fit
+    if(fit_turbulence)
+    	other_params += 1;
+
 
 	// set the MultiNest sampling parameters
 	int mmodal = 1;					// do mode separation?
@@ -238,9 +262,9 @@ void run_fit(vector< vector<double> > & data)
 	int nlive = 1000;				// number of live points
 	double efr = 1.0;				// set the required efficiency
 	double tol = 0.5;				// tol, defines the stopping criteria
-	int ndims = 7;					// dimensionality (no. of free parameters)
-	int nPar = 7;					// total no. of parameters including free & derived parameters
-	int nClsPar = 7;				// no. of parameters to do mode separation on
+	int ndims = 6 + other_params;					// dimensionality (no. of free parameters)
+	int nPar = 6 + other_params;					// total no. of parameters including free & derived parameters
+	int nClsPar = 6 + other_params;				// no. of parameters to do mode separation on
 	int updInt = 100;				// after how many iterations feedback is required & the output files should be updated
 									// note: posterior files are updated & dumper routine is called after every updInt*10 iterations
 	double Ztol = -1E90;			// all the modes with logZ < Ztol are ignored
@@ -274,6 +298,9 @@ void run_fit(vector< vector<double> > & data)
 // things off to other functions.
 int main(int argc, char *argv[])
 {
+	double tmp;
+	bool param_error = false;
+
     if(argc == 1)
     {
         print_help();
@@ -283,8 +310,32 @@ int main(int argc, char *argv[])
     if(argc < 2)
     	cout << "Missing filename on command line";
 
+	for (int i = 1; i < argc; i++)
+	{
+		// First see if the user is requesting help:
+		if(strcmp(argv[i], "-h") == 0)
+		{
+			print_help();
+			return 0;
+		}
+
+		// Fit atmospheric turbulence, treated as gaussian noise.
+		if(strcmp(argv[i], "-turb") == 0)
+		{
+			printf("NOTE: Including atmospheric turbulence in fit.\n");
+			fit_turbulence = true;
+		}
+    }
+
     // Read in the input filename:
     string input_rv = string(argv[1]);
+
+    // Parse the remaining command-line options
+    ParseCommandLine(argc, argv, tmp, tmp, tmp, tmp, omega_min, omega_max, asini_min, asini_max, tmp, tmp, e_min, e_max, tau_min, tau_max, T_min, T_max, param_error);
+
+    // If there was an error, quit.
+    if(param_error)
+    	return 0;
 
     // Read in the file of RV data.
     // Each row should contain time, RV, [errors]
@@ -292,13 +343,13 @@ int main(int argc, char *argv[])
 
     int pos_size[] = {0, 12, 13, 6, 20, 4};
     vector< vector<int> > split_info;
-    for(int i = 0; i < 3; i++)
-    {
-    	vector<int> tmp;
-    	tmp.push_back(pos_size[2*i]);
-    	tmp.push_back(pos_size[2*i+1]);
-    	split_info.push_back(tmp);
-    }
+//    for(int i = 0; i < 3; i++)
+//    {
+//    	vector<int> tmp;
+//    	tmp.push_back(pos_size[2*i]);
+//    	tmp.push_back(pos_size[2*i+1]);
+//    	split_info.push_back(tmp);
+//    }
 
     read_data(input_rv, comment_chars, 5, split_info, data);
 
