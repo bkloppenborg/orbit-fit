@@ -7,6 +7,12 @@ project (orbit_fit CXX Fortran)
 set(CMAKE_BUILD_TYPE Release)
 #set(CMAKE_BUILD_TYPE Debug)
 
+set(MPI_COMPILER mpicxx)
+find_package(MPI)
+if(MPI_FOUND)
+    set(CMAKE_CXX_COMPILER ${MPI_COMPILER})
+endif(MPI_FOUND)
+
 set(MPI_COMPILER mpif90)
 find_package(MPI)
 if(MPI_FOUND)
@@ -14,6 +20,8 @@ if(MPI_FOUND)
     set(CMAKE_Fortran_COMPILER ${MPI_COMPILER})
     set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS} "-DMPI")
 endif(MPI_FOUND)
+
+
 
 # We need lapack, but the cluster doesn't have it installed in the
 # right location, workaround
