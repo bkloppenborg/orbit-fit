@@ -147,6 +147,8 @@ int main(int argc, char *argv[])
     double e = 0.227;
     double tau = 2.34567E6;
     double T = 9890;
+    //double mu_x = 10;
+    //double mu_y = -5;
 
     // How many data points?
     int n_data = 100;

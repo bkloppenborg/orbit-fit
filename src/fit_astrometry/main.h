@@ -37,7 +37,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew);
 
 void run_fit(vector< vector<double> > & data);
 
-void ParseProgOptions(int argc, char *argv[], bool param_error);
+void ParseProgOptions(int argc, char *argv[], bool & param_error);
 
 // The main routine.  Basically just used to parse out some parameters before handing
 // things off to other functions.

@@ -19,14 +19,17 @@
 #define DEG_TO_RAD PI / 180.0
 #define RAD_TO_DEG 180.0 / PI
 #define MAS_TO_RAD 4.8481368E-9
-#define RAD_TO_MAS 1.0 / (4.8481368E-9)
+#define RAD_TO_MAS (1.0 / (4.8481368E-9))
 
 #define TWO_PI 2*PI
 
 #define DAY_TO_SEC (24 * 60 * 60)
-#define SEC_TO_DAY 1.0 / (24*60*60)
+#define SEC_TO_DAY (1.0 / (24*60*60))
 #define YEAR_TO_SEC 31556926.
-#define SEC_TO_YEAR 1.0 / (YEAR_TO_SEC)
+#define SEC_TO_YEAR (1.0 / (YEAR_TO_SEC))
+
+#define MASYR_TO_RADSEC (MAS_TO_RAD * 1.0 / (YEAR_TO_SEC))
+#define RADSEC_TO_MASYR (1.0 / MASYR_TO_RADSEC)
 
 double DegToRad(double value);
 

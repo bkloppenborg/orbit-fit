@@ -58,12 +58,12 @@ void ParseCommandLine(int argc, char *argv[],
 	// NOTE: All time units are converted to seconds
 	Omega_min = 0;
 	Omega_max = TWO_PI;
-	inc_min = -90 * DEG_TO_RAD;
-	inc_max = 90 * DEG_TO_RAD;
+	inc_min = -1 * PI;
+	inc_max = PI;
     omega_min = 0;
     omega_max = TWO_PI;
-    alpha_min = 1;
-    alpha_max = 100;
+    alpha_min = 1 * MAS_TO_RAD;
+    alpha_max = 100 * MAS_TO_RAD;
     asini_min = 1;
     asini_max = 1E20;
     e_min = 0;
@@ -118,12 +118,12 @@ void ParseCommandLine(int argc, char *argv[],
 
 		if(strcmp(argv[i], "-alpha_min") == 0)
 		{
-			alpha_min = atof(argv[i + 1]);
+			alpha_min = atof(argv[i + 1]) * MAS_TO_RAD;
 		}
 
 		if(strcmp(argv[i], "-alpha_max") == 0)
 		{
-			alpha_max = atof(argv[i + 1]);
+			alpha_max = atof(argv[i + 1]) * MAS_TO_RAD;
 		}
 
 		if(strcmp(argv[i], "-e_min") == 0)

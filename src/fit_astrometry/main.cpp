@@ -28,6 +28,10 @@
 
 using namespace std;
 
+// Importing/exporting unit to radian conversion factors
+double UNIT_TO_RAD = 1;
+double RAD_TO_UNIT = 1;
+
 // Global Variables (scales and (sometimes partial) priors:
 
 double x_0_min;
@@ -99,7 +103,7 @@ void print_help()
 	string usage = "fitast - A Bayesian Astrometric Orbit Fitting Program\n"
 	"Fits Astrometric Position data using MultiNest\n\n"
 	"Usage: \n"
-	" fitast input_file \n"
+	" fitast input_file -units [rad|deg|mas] ... \n"
 	" \n"
 	"Optional Arguments: \n"
 	" -h        Prints this message \n"
@@ -138,8 +142,8 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		try
 		{
 			t = atof(tokens.at(0).c_str()) * DAY_TO_SEC;
-			x = atof(tokens.at(1).c_str());
-			y = atof(tokens.at(3).c_str());
+			x = atof(tokens.at(1).c_str()) * UNIT_TO_RAD;
+			y = atof(tokens.at(3).c_str()) * UNIT_TO_RAD;
 		}
 		catch(...)
 		{
@@ -149,7 +153,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		// Now for the uncertainties (these may not exist)
 		try
 		{
-			e_x = atof(tokens.at(2).c_str());
+			e_x = atof(tokens.at(2).c_str()) * UNIT_TO_RAD;
 		}
 		catch(...)
 		{
@@ -158,7 +162,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 
 		try
 		{
-			e_y = atof(tokens.at(4).c_str());
+			e_y = atof(tokens.at(4).c_str()) * UNIT_TO_RAD;
 		}
 		catch(...)
 		{
@@ -185,9 +189,9 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		}
 
 		if(e_x == 0)
-			e_x = default_error;
+			e_x = default_error * UNIT_TO_RAD;
 		if(e_y == 0)
-			e_y = default_error;
+			e_y = default_error * UNIT_TO_RAD;
 
 		// Enable if you want to see the data.
 		//printf("%f %f %f %f %f \n", t, x, e_x, y, e_y);
@@ -237,18 +241,18 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     Cube[0] = Omega * RAD_TO_DEG;
     Cube[1] = inc * RAD_TO_DEG;
     Cube[2] = omega * RAD_TO_DEG;
-    Cube[3] = alpha;
+    Cube[3] = alpha * RAD_TO_MAS;
     Cube[4] = e;
     Cube[5] = tau * SEC_TO_DAY;
     Cube[6] = T * SEC_TO_DAY;
 
     if(fit_motion)
     {
-		Cube[7] = x_0;
-		Cube[8] = y_0;
-		Cube[9] = mu_x * YEAR_TO_SEC;
-		Cube[10] = mu_y * YEAR_TO_SEC;
-		Cube[11] = pi;
+		Cube[7] = x_0 * RAD_TO_UNIT;
+		Cube[8] = y_0 * RAD_TO_UNIT;
+		Cube[9] = mu_x * RADSEC_TO_MASYR;
+		Cube[10] = mu_y * RADSEC_TO_MASYR;
+		Cube[11] = pi * RAD_TO_MAS;
     }
 
     // Compute a few things
@@ -260,7 +264,10 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     			+ 1.0 / tau * prior_tau
     			+ 1.0 / T * prior_T;
 
-    double llike = (double) n_data / 2.0 * log(TWO_PI);
+    if(fit_motion)
+    	prior += prior_x_0 + prior_y_0 + prior_mu_x + prior_mu_y + prior_pi;
+
+    double llike = 0;
 
     // Now compute the contribution of loglike from the data - model:
     for(int i = 0; i < n_data; i++)
@@ -284,13 +291,15 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
         	dt = t - tau;
         	x += x_0 + mu_x * dt + pi * P_alpha;
         	y += y_0 + mu_y * dt + pi * P_delta;
+
+        	//cout << dt << " " << x << " " << y << endl;
         }
 
         llike -= 0.5 * log(TWO_PI * e_xi * e_yi) + (x - xi)*(x - xi) / (2 * e_xi2) + (y - yi)*(y - yi) / (2 * e_yi2);
     }
 
     //cout << Omega << " " << inc << " " << omega << " " << alpha << " " << e << " " << tau << " " << T << " " << llike << endl;
-    //cout << x << " " << xi << " " << y << " " << yi << " " << err << endl;
+    //cout << "X: " << x - xi << " " << e_xi << " Y: " << y - yi << " " << e_yi << endl;
 
 	// Assign the value and we're done.
 	*lnew = llike + prior;
@@ -314,11 +323,11 @@ void run_fit(vector< vector<double> > & data)
 	// Now spit out the optional parameters, if used.
     if(fit_motion)
     {
-    	printf("x_0:   %f %f \n", x_0_min, x_0_max);
-    	printf("y_0:   %f %f \n", y_0_min, y_0_max);
-    	printf("mu_x:  %f %f \n", mu_x_min, mu_x_max);
-    	printf("mu_y:  %f %f \n", mu_y_min, mu_y_max);
-    	printf("pi:    %f %f \n", pi_min, pi_max);
+    	printf("x_0:   %f %f \n", x_0_min * RAD_TO_UNIT, x_0_max * RAD_TO_UNIT);
+    	printf("y_0:   %f %f \n", y_0_min * RAD_TO_UNIT, y_0_max * RAD_TO_UNIT);
+    	printf("mu_x:  %f %f \n", mu_x_min * RADSEC_TO_MASYR, mu_x_max * RADSEC_TO_MASYR);
+    	printf("mu_y:  %f %f \n", mu_y_min * RADSEC_TO_MASYR, mu_y_max * RADSEC_TO_MASYR);
+    	printf("pi:    %f %f \n", pi_min * RAD_TO_MAS, pi_max * RAD_TO_MAS);
     }
 
     scale_x_0 = x_0_max - x_0_min;
@@ -334,11 +343,13 @@ void run_fit(vector< vector<double> > & data)
     scale_tau = tau_max - tau_min;
     scale_T = T_max - T_min;
 
+    // Motion information all have uniform priors:
     prior_x_0 = 1.0 / scale_x_0;
     prior_y_0 = 1.0 / scale_y_0;
     prior_mu_x = 1.0 / scale_mu_x;
     prior_mu_y = 1.0 / scale_mu_y;
     prior_pi = 1.0 / scale_pi;
+
 	prior_Omega = 1.0 / scale_Omega;
 	prior_inc = 1.0 / scale_inc;
 	prior_omega = 1.0 / scale_omega;
@@ -374,6 +385,11 @@ void run_fit(vector< vector<double> > & data)
 	pWrap[0] = 1;	// Omega
 	pWrap[2] = 1;   // omega
 
+	if(fit_motion)
+	{
+		pWrap[7] = 1;	// x_0
+	}
+
 	char root[100] = "chains/fitast-";		// root for output files
 	int seed = -1;					// random no. generator seed, if < 0 then take the seed from system clock
 	int fb = 1;					    // need feedback on standard output?
@@ -393,15 +409,19 @@ void run_fit(vector< vector<double> > & data)
 }
 
 // Parse command-line options that are specific to this program
-void ParseProgOptions(int argc, char *argv[], bool param_error)
+void ParseProgOptions(int argc, char *argv[], bool & param_error)
 {
 	// Init values:
+	x_0_min = 0;
+	x_0_max = TWO_PI;
+	y_0_min = -90 * DEG_TO_RAD;
+	y_0_max = 90 * DEG_TO_RAD;
 	mu_x_min = 0;
-	mu_x_max = 20 * SEC_TO_YEAR;
+	mu_x_max = 20 * MASYR_TO_RADSEC;
 	mu_y_min = 0;
-	mu_y_max = 20 * SEC_TO_YEAR;
+	mu_y_max = 20 * MASYR_TO_RADSEC;
 	pi_min = 0;
-	pi_max = 10;
+	pi_max = 10 * MAS_TO_RAD;
 
 	for (int i = 1; i < argc; i++)
 	{
@@ -421,36 +441,73 @@ void ParseProgOptions(int argc, char *argv[], bool param_error)
 
 		if(strcmp(argv[i], "-mu_x_min") == 0)
 		{
-			mu_x_min = atof(argv[i+1]) * SEC_TO_YEAR;
+			mu_x_min = atof(argv[i+1]) * MASYR_TO_RADSEC;
 		}
 
 		if(strcmp(argv[i], "-mu_x_max") == 0)
 		{
-			mu_x_max = atof(argv[i+1]) * SEC_TO_YEAR;
+			mu_x_max = atof(argv[i+1]) * MASYR_TO_RADSEC;
 		}
 
 		if(strcmp(argv[i], "-mu_y_min") == 0)
 		{
-			mu_y_min = atof(argv[i+1]) * SEC_TO_YEAR;
+			mu_y_min = atof(argv[i+1]) * MASYR_TO_RADSEC;
 		}
 
 		if(strcmp(argv[i], "-mu_y_max") == 0)
 		{
-			mu_y_max = atof(argv[i+1]) * SEC_TO_YEAR;
+			mu_y_max = atof(argv[i+1]) * MASYR_TO_RADSEC;
 		}
 
 		if(strcmp(argv[i], "-pi_min") == 0)
 		{
-			pi_min = atof(argv[i+1]);
+			pi_min = atof(argv[i+1]) * MAS_TO_RAD;
 		}
 
 		if(strcmp(argv[i], "-pi_max") == 0)
 		{
-			pi_max = atof(argv[i+1]);
+			pi_max = atof(argv[i+1]) * MAS_TO_RAD;
 		}
 
-		// TODO: Add in parameter that will convert native units over to radians or something more
-		// convenient than native units.  For now, assume input is in degrees.
+		if(strcmp(argv[i], "-x0_min") == 0)
+		{
+			x_0_min = atof(argv[i+1]) * UNIT_TO_RAD;
+		}
+
+		if(strcmp(argv[i], "-x0_max") == 0)
+		{
+			x_0_max = atof(argv[i+1]) * UNIT_TO_RAD;
+		}
+
+		if(strcmp(argv[i], "-y0_min") == 0)
+		{
+			y_0_min = atof(argv[i+1]) * UNIT_TO_RAD;
+		}
+
+		if(strcmp(argv[i], "-y0_max") == 0)
+		{
+			y_0_max = atof(argv[i+1]) * UNIT_TO_RAD;
+		}
+
+		if(strcmp(argv[i], "-units") == 0)
+		{
+			// valid options: mas, deg, rad
+			string tmp = string(argv[i+1]);
+
+			if(tmp == "rad")
+				UNIT_TO_RAD = 1;
+			else if(tmp == "deg")
+				UNIT_TO_RAD = DEG_TO_RAD;
+			else if(tmp == "mas")
+				UNIT_TO_RAD = MAS_TO_RAD;
+			else
+			{
+				printf("Conversion of input units, %s, to radians is not implemented.  Please use rad, deg, or mas.", tmp.c_str());
+				param_error = true;
+			}
+
+			RAD_TO_UNIT = 1.0 / UNIT_TO_RAD;
+		}
 
 
     }
@@ -463,12 +520,6 @@ int main(int argc, char *argv[])
 	// Init/allocate locals:
 	double tmp;
 	bool param_error = false;
-
-	// Init globals:
-	x_0_min = 0;
-	x_0_max = TWO_PI;
-	y_0_min = -90 * DEG_TO_RAD;
-	y_0_max = 90 * DEG_TO_RAD;
 
 	// First parse command line arguments that are only for this program:
     if(argc == 1)
