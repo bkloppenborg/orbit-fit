@@ -62,7 +62,7 @@ void ParseCommandLine(int argc, char *argv[],
 	inc_max = PI;
     omega_min = 0;
     omega_max = TWO_PI;
-    alpha_min = 1 * MAS_TO_RAD;
+    alpha_min = 0.1 * MAS_TO_RAD;
     alpha_max = 100 * MAS_TO_RAD;
     asini_min = 1;
     asini_max = 1E20;

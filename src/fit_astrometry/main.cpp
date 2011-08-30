@@ -141,7 +141,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		// And now attempt to read in the line
 		try
 		{
-			t = atof(tokens.at(0).c_str()) * DAY_TO_SEC;
+			t = atof(tokens.at(0).c_str()); // * DAY_TO_SEC;
 			x = atof(tokens.at(1).c_str()) * UNIT_TO_RAD;
 			y = atof(tokens.at(3).c_str()) * UNIT_TO_RAD;
 		}
@@ -250,8 +250,8 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     {
 		Cube[7] = x_0 * RAD_TO_UNIT;
 		Cube[8] = y_0 * RAD_TO_UNIT;
-		Cube[9] = mu_x * RADSEC_TO_MASYR;
-		Cube[10] = mu_y * RADSEC_TO_MASYR;
+		Cube[9] = mu_x * 365.25 / MAS_TO_RAD;
+		Cube[10] = mu_y * 365.25 / MAS_TO_RAD;
 		Cube[11] = pi * RAD_TO_MAS;
     }
 
@@ -288,17 +288,19 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 
         if(fit_motion)
         {
+//        	dt = t - 2428899.500000;
         	dt = t - tau;
-        	x += x_0 + mu_x * dt + pi * P_alpha;
-        	y += y_0 + mu_y * dt + pi * P_delta;
+        	x += x_0 + mu_x * dt;// + pi * P_alpha;
+        	y += y_0 + mu_y * dt;// + pi * P_delta;
 
-        	//cout << dt << " " << x << " " << y << endl;
         }
 
         llike -= 0.5 * log(TWO_PI * e_xi * e_yi) + (x - xi)*(x - xi) / (2 * e_xi2) + (y - yi)*(y - yi) / (2 * e_yi2);
     }
 
-    //cout << Omega << " " << inc << " " << omega << " " << alpha << " " << e << " " << tau << " " << T << " " << llike << endl;
+	//printf("%1.4e %1.4e %1.4e %1.4e %1.4e %1.4e %1.4e \n", xi, x_0, mu_x, dt, pi, (x-xi), e_xi);
+
+//    cout << Omega << " " << inc << " " << omega << " " << alpha << " " << e << " " << tau << " " << T << " " << llike << endl;
     //cout << "X: " << x - xi << " " << e_xi << " Y: " << y - yi << " " << e_yi << endl;
 
 	// Assign the value and we're done.
@@ -416,12 +418,12 @@ void ParseProgOptions(int argc, char *argv[], bool & param_error)
 	x_0_max = TWO_PI;
 	y_0_min = -90 * DEG_TO_RAD;
 	y_0_max = 90 * DEG_TO_RAD;
-	mu_x_min = 0;
-	mu_x_max = 20 * MASYR_TO_RADSEC;
-	mu_y_min = 0;
-	mu_y_max = 20 * MASYR_TO_RADSEC;
+	mu_x_min = -10 * MAS_TO_RAD / 365.25;;
+	mu_x_max = 10 * MAS_TO_RAD / 365.25; //20 * MASYR_TO_RADSEC;
+	mu_y_min = -10 * MAS_TO_RAD / 365.25;;
+	mu_y_max = 10 * MAS_TO_RAD / 365.25;; //MASYR_TO_RADSEC;
 	pi_min = 0;
-	pi_max = 10 * MAS_TO_RAD;
+	pi_max = 3 * MAS_TO_RAD;
 
 	for (int i = 1; i < argc; i++)
 	{
