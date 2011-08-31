@@ -12,9 +12,6 @@
 
 #include "multinest.h"
 
-void dumper(int *nSamples, int *nlive, int *nPar, double **physLive,
-    double **posterior, double *paramConstr, double *maxLogLike, double *logZ, double *logZerr);
-
 // A wrapper to kick off multinest.
 void run_multinest(int mmodal, int ceff, int nlive, double tol,
     double efr, int ndims, int nPar, int nClsPar,
@@ -22,7 +19,7 @@ void run_multinest(int mmodal, int ceff, int nlive, double tol,
     int seed, int *pWrap, int fb, int resume,
     int outfile, int initMPI, double logZero,
     void (*LogLike)(double *, int *, int *, double *),
-    void (*dumper)(int *, int *, int *, double **, double **, double *, double *, double *, double *),
+    void (*dumper)(int &, int &, int &, double **, double **, double *, double &, double &, double &),
     int context);
 
 #endif /* MULTINEST_INF_H_ */

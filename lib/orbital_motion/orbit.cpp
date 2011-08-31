@@ -204,6 +204,15 @@ void Compute_xyz(double a, double beta, double e,
     z = a * (n1 * cos_E + beta * n2 * sin_E - e * n1);
 }
 
+void Compute_xy(double a, double beta, double e,
+		double l1, double l2, double m1, double m2,
+		double cos_E, double sin_E,
+		double & x, double & y)
+{
+    x = a * (l1 * cos_E + beta * l2 * sin_E - e * l1);
+    y = a * (m1 * cos_E + beta * m2 * sin_E - e * m1);
+}
+
 // Computes the (v_x, v_y, v_z) velocities of the orbit.  Equations defined in
 // "Orbital Motions" by A. E. Roy 2005 pg. 93
 void Compute_v_xyz(double a, double beta, double e,
@@ -284,4 +293,20 @@ void GetRV(double omega, double asini, double e, double tau, double T, double t,
 
     // Compute the positions and velocities:
     rv = n * asini / eta * (beta * cos(omega) * cos_E - sin(omega) * sin_E);
+}
+
+void GetRV_K(double K, double omega, double e, double tau, double T, double t,
+		double & rv)
+{
+
+	double eta = sqrt(1 - e*e);
+	double N = ComputeN(T);
+	double M = ComputeM(tau, N, t);
+	double E = ComputeE(M, e);
+	double cos_E = cos(E);
+	double sin_E = sin(E);
+	double cos_omega = cos(omega);
+	double sin_omega = sin(omega);
+
+	rv = K * eta / (1 - e * cos_E) * (eta * cos_E * cos_omega - sin_E * sin_omega);
 }

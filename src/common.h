@@ -20,6 +20,8 @@
 #define RAD_TO_DEG (180.0 / PI)
 #define MAS_TO_RAD (4.8481368110953602e-09)
 #define RAD_TO_MAS (206264806.24709633)
+#define ASEC_TO_RAD (4.84813681E-6)
+#define RAD_TO_ASEC (206264.80629369864)
 
 #define TWO_PI (2*PI)
 
@@ -39,10 +41,8 @@ double RadToDeg(double value);
 
 double RadToMas(double value);
 
-void ParseCommandLine(int argc, char *argv[],
-		double & Omega_min, double & Omega_max, double & inc_min, double & inc_max,
-		double & omega_min, double & omega_max, double & asini_min, double & asini_max,
-		double & alpha_min, double & alpha_max, double & e_min, double & e_max,
+void ParseCommonParams(int argc, char *argv[],
+		double & omega_min, double & omega_max, double & e_min, double & e_max,
 		double & tau_min, double & tau_max, double & T_min, double & T_max,
 		bool & param_error);
 

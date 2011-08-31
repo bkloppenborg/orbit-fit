@@ -28,12 +28,8 @@
 
 using namespace std;
 
-// Importing/exporting unit to radian conversion factors
-double UNIT_TO_RAD = 1;
-double RAD_TO_UNIT = 1;
-
 // Global Variables (scales and (sometimes partial) priors:
-
+double default_error;
 double x_0_min;
 double x_0_max;
 double y_0_min;
@@ -141,9 +137,9 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		// And now attempt to read in the line
 		try
 		{
-			t = atof(tokens.at(0).c_str()); // * DAY_TO_SEC;
-			x = atof(tokens.at(1).c_str()) * UNIT_TO_RAD;
-			y = atof(tokens.at(3).c_str()) * UNIT_TO_RAD;
+			t = atof(tokens.at(0).c_str());
+			x = atof(tokens.at(1).c_str());
+			y = atof(tokens.at(3).c_str());
 		}
 		catch(...)
 		{
@@ -153,7 +149,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		// Now for the uncertainties (these may not exist)
 		try
 		{
-			e_x = atof(tokens.at(2).c_str()) * UNIT_TO_RAD;
+			e_x = atof(tokens.at(2).c_str());
 		}
 		catch(...)
 		{
@@ -162,7 +158,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 
 		try
 		{
-			e_y = atof(tokens.at(4).c_str()) * UNIT_TO_RAD;
+			e_y = atof(tokens.at(4).c_str());
 		}
 		catch(...)
 		{
@@ -189,9 +185,9 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		}
 
 		if(e_x == 0)
-			e_x = default_error * UNIT_TO_RAD;
+			e_x = default_error;
 		if(e_y == 0)
-			e_y = default_error * UNIT_TO_RAD;
+			e_y = default_error;
 
 		// Enable if you want to see the data.
 		//printf("%f %f %f %f %f \n", t, x, e_x, y, e_y);
@@ -211,161 +207,121 @@ void read_data(string filename, string comment_chars, double default_error, vect
 
 void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 {
-	// Local variables
-	double t, xi, e_xi, yi, e_yi, P_alpha, P_delta;
-	double x, y, z, err, dt;
-	double e_xi2, e_yi2;
+	// Locals
+	double t, xi, e_xi, yi, e_yi, P_a, P_d;
+	double x, y, err_x, err_y;
+	double M, E, cos_E, sin_E;
 
-	// Used only if -motion is specified on the command line.
-	double x_0, y_0, mu_x, mu_y, pi;
+	// Pull out the parameters from the cube
+	double Omega = Cube[0] * scale_Omega + Omega_min;
+	double inc = Cube[1] * scale_inc + inc_min;
+	double omega = Cube[2] * scale_omega + omega_min;
+	double alpha = Cube[3] * scale_alpha + alpha_min;
+	double e = Cube[4] * scale_e + e_min;
+	double tau = Cube[5] * scale_tau + tau_min;
+	double T = Cube[6] * scale_T + T_min;
 
-    // First extract the parameters, convert to real units:
-    double Omega = 	Cube[0] * scale_Omega + Omega_min;
-    double inc = 	Cube[1] * scale_inc + inc_min;
-    double omega = 	Cube[2] * scale_omega + omega_min;
-    double alpha =	Cube[3] * scale_alpha + alpha_min;
-    double e = 		Cube[4] * scale_e + e_min;
-    double tau = 	Cube[5] * scale_tau + tau_min;
-    double T = 		Cube[6] * scale_T + T_min;
-
-	if(fit_motion)
-	{
-		x_0 = Cube[7] * scale_x_0 + x_0_min;
-		y_0 = Cube[8] * scale_y_0 + y_0_min;
-		mu_x = Cube[9] * scale_mu_x + mu_x_min;
-		mu_y = Cube[10] * scale_mu_y + mu_y_min;
-		pi = Cube[11] * scale_pi + pi_min;
-	}
-
-    // Now set the cube parameters:
-    Cube[0] = Omega * RAD_TO_DEG;
-    Cube[1] = inc * RAD_TO_DEG;
+	// Now set the scaled parameters back in the cube:
+	Cube[0] = Omega * RAD_TO_DEG;
+	Cube[1] = inc * RAD_TO_DEG;
     Cube[2] = omega * RAD_TO_DEG;
-    Cube[3] = alpha * RAD_TO_MAS;
-    Cube[4] = e;
-    Cube[5] = tau * SEC_TO_DAY;
-    Cube[6] = T * SEC_TO_DAY;
+    Cube[4] = alpha;
+    Cube[5] = e;
+    Cube[6] = tau;
+    Cube[7] = T;
 
-    if(fit_motion)
-    {
-		Cube[7] = x_0 * RAD_TO_UNIT;
-		Cube[8] = y_0 * RAD_TO_UNIT;
-		Cube[9] = mu_x * 365.25 / MAS_TO_RAD;
-		Cube[10] = mu_y * 365.25 / MAS_TO_RAD;
-		Cube[11] = pi * RAD_TO_MAS;
-    }
+    // Pre-compute a few values that are used frequently:
+    double c_Omega = cos(Omega);
+    double s_Omega = sin(Omega);
+    double c_inc = cos(inc);
+    double s_inc = sin(inc);
+    double c_omega = cos(omega);
+    double s_omega = sin(omega);
 
-    // Compute a few things
-    double prior = prior_Omega
-    			+ prior_inc
-    			+ prior_omega
-    			+ 1.0 / alpha * prior_alpha
-    			+ prior_e
-    			+ 1.0 / tau * prior_tau
-    			+ 1.0 / T * prior_T;
+    // Note, if an error is found here, be sure to update the GetRV and GetXY functions.
+    double l1 = c_Omega * c_omega - s_Omega * s_omega * c_inc;
+    double m1 = s_Omega * c_omega + c_Omega * s_omega * c_inc;
+    double l2 = -c_Omega * s_omega - s_Omega * c_omega * c_inc;
+    double m2 = -s_Omega * s_omega + c_Omega * c_omega * c_inc;
 
-    if(fit_motion)
-    	prior += prior_x_0 + prior_y_0 + prior_mu_x + prior_mu_y + prior_pi;
+    // A few pre-computed values
+    double beta = sqrt(1 - e*e);
+    double n = ComputeN(T);
 
+    double prior = 0;
     double llike = 0;
 
-    // Now compute the contribution of loglike from the data - model:
-    for(int i = 0; i < n_data; i++)
+    for(register int i = 0; i < n_data; i++)
     {
-        t = data[i][0];
-        xi = data[i][1];
-        e_xi = data[i][2];
-        yi = data[i][3];
-        e_yi = data[i][4];
-        P_alpha = data[i][5];
-        P_delta = data[i][6];
+    	// Pull out the data:
+    	t = data[i][0];
+    	xi = data[i][1];
+    	e_xi = data[i][2];
+    	yi = data[i][3];
+    	e_yi = data[i][4];
+    	P_a = data[i][5];
+    	P_d = data[i][6];
 
-        e_xi2 = e_xi * e_xi;
-        e_yi2 = e_yi * e_yi;
+    	// Compute orbital elements:
+        M = ComputeM(tau, n, t);
+        E = ComputeE(M, e);
+        cos_E = cos(E);
+        sin_E = sin(E);
 
-        // Get the positions, compute the residuals.
-        GetPositions(Omega, inc, omega, alpha, e, tau, T, t, x, y, z);
+    	// Get the XY positions of the orbit
+    	Compute_xy(alpha, beta, e, l1, l2, m1, m2, cos_E, sin_E, x, y);
 
-        if(fit_motion)
-        {
-//        	dt = t - 2428899.500000;
-        	dt = t - tau;
-        	x += x_0 + mu_x * dt;// + pi * P_alpha;
-        	y += y_0 + mu_y * dt;// + pi * P_delta;
+    	err_x = x - xi;
+    	err_y = y - yi;
 
-        }
-
-        llike -= 0.5 * log(TWO_PI * e_xi * e_yi) + (x - xi)*(x - xi) / (2 * e_xi2) + (y - yi)*(y - yi) / (2 * e_yi2);
+    	llike -= log(TWO_PI * e_xi * e_yi) + err_x * err_x / (2 * e_xi * e_xi) + err_y * err_y / (2 * e_yi * e_yi);
     }
-
-	//printf("%1.4e %1.4e %1.4e %1.4e %1.4e %1.4e %1.4e \n", xi, x_0, mu_x, dt, pi, (x-xi), e_xi);
-
-//    cout << Omega << " " << inc << " " << omega << " " << alpha << " " << e << " " << tau << " " << T << " " << llike << endl;
-    //cout << "X: " << x - xi << " " << e_xi << " Y: " << y - yi << " " << e_yi << endl;
 
 	// Assign the value and we're done.
 	*lnew = llike + prior;
 }
 
+void dumper(int &nSamples, int &nlive, int &nPar, double **physLive, double **posterior, double *paramConstr, double &maxLogLike, double &logZ, double &logZerr)
+{
+
+}
+
 void run_fit(vector< vector<double> > & data)
 {
 	// Setup the interface to multinest, run it.
-
 	// Print out what parameters are being used here:
 	printf("Starting fit with the following limits: \n");
-	printf("Param: Min Max\n");
-	printf("Omega: %f %f \n", Omega_min * RAD_TO_DEG, Omega_max * RAD_TO_DEG);
-	printf("inc:   %f %f \n", inc_min * RAD_TO_DEG, inc_max * RAD_TO_DEG);
-	printf("omega: %f %f \n", omega_min * RAD_TO_DEG, omega_max * RAD_TO_DEG);
-	printf("alpha: %f %f \n", alpha_min,alpha_max);
-	printf("e:     %f %f \n", e_min, e_max);
-	printf("tau:   %e %e \n", tau_min * SEC_TO_DAY, tau_max * SEC_TO_DAY);
-	printf("T:     %e %e \n", T_min * SEC_TO_DAY, T_max * SEC_TO_DAY);
+	printf("Param       : Min        Max\n");
+	printf("Omega (deg) : %1.4e %1.4e \n", Omega_min * RAD_TO_DEG, Omega_max * RAD_TO_DEG);
+	printf("inc   (deg) : %1.4e %1.4e \n", inc_min * RAD_TO_DEG, inc_max * RAD_TO_DEG);
+	printf("omega (deg) : %1.4e %1.4e \n", omega_min * RAD_TO_DEG, omega_max * RAD_TO_DEG);
+	printf("e           : %1.4e %1.4e \n", e_min, e_max);
+	printf("T (time)    : %1.4e %1.4e \n", T_min, T_max);
+	printf("tau (time)  : %1.4e %1.4e \n", tau_min, tau_max);
+	printf("gamma (km/s): %1.4e %1.4e \n", gamma_min, gamma_max);
 
-	// Now spit out the optional parameters, if used.
-    if(fit_motion)
-    {
-    	printf("x_0:   %f %f \n", x_0_min * RAD_TO_UNIT, x_0_max * RAD_TO_UNIT);
-    	printf("y_0:   %f %f \n", y_0_min * RAD_TO_UNIT, y_0_max * RAD_TO_UNIT);
-    	printf("mu_x:  %f %f \n", mu_x_min * RADSEC_TO_MASYR, mu_x_max * RADSEC_TO_MASYR);
-    	printf("mu_y:  %f %f \n", mu_y_min * RADSEC_TO_MASYR, mu_y_max * RADSEC_TO_MASYR);
-    	printf("pi:    %f %f \n", pi_min * RAD_TO_MAS, pi_max * RAD_TO_MAS);
-    }
+	if(fit_turbulence)
+		printf("s (km/s)    : %1.4e %1.4e \n", s_min, s_max);
 
-    scale_x_0 = x_0_max - x_0_min;
-    scale_y_0 = y_0_max - y_0_min;
-    scale_mu_x = mu_x_max - mu_x_min;
-    scale_mu_y = mu_y_max - mu_y_min;
-    scale_pi = pi_max - pi_min;
-	scale_Omega = Omega_max - Omega_min;
-	scale_inc = inc_max - inc_min;
+	// All of the parameters have been set, compute scale factors:
+
 	scale_omega = omega_max - omega_min;
-	scale_alpha = alpha_max - alpha_min;
 	scale_e = e_max - e_min;
-    scale_tau = tau_max - tau_min;
-    scale_T = T_max - T_min;
+	scale_T = T_max - T_min;
+	scale_tau = tau_max - tau_min;
 
-    // Motion information all have uniform priors:
-    prior_x_0 = 1.0 / scale_x_0;
-    prior_y_0 = 1.0 / scale_y_0;
-    prior_mu_x = 1.0 / scale_mu_x;
-    prior_mu_y = 1.0 / scale_mu_y;
-    prior_pi = 1.0 / scale_pi;
 
-	prior_Omega = 1.0 / scale_Omega;
-	prior_inc = 1.0 / scale_inc;
+	// Now compute the (sometimes partial) priors:
+	prior_K = 1.0 / scale_K;
 	prior_omega = 1.0 / scale_omega;
-	prior_alpha = 1.0 / log(alpha_max / alpha_min);
 	prior_e = 1.0 / scale_e;
-	prior_tau = 1.0 / log(tau_max / tau_min);
 	prior_T = 1.0 / log(T_max / T_min);
+	prior_tau = 1.0 / log(tau_max / tau_min);
+
+
 
     n_data = data.size();
     printf("Found %i data points.\n", n_data);
-
-    // Check the optional parameters:
-    if(fit_motion)
-    	opt_params += 5;
 
 	// set the MultiNest sampling parameters
 	int mmodal = 1;					// do mode separation?
@@ -373,9 +329,9 @@ void run_fit(vector< vector<double> > & data)
 	int nlive = 1000;				// number of live points
 	double efr = 1.0;				// set the required efficiency
 	double tol = 0.5;				// tol, defines the stopping criteria
-	int ndims = 7 + opt_params;					// dimensionality (no. of free parameters)
-	int nPar = 7 + opt_params;					// total no. of parameters including free & derived parameters
-	int nClsPar = 7 + opt_params;				// no. of parameters to do mode separation on
+	int ndims = 7;					// dimensionality (no. of free parameters)
+	int nPar = 7;					// total no. of parameters including free & derived parameters
+	int nClsPar = 7;				// no. of parameters to do mode separation on
 	int updInt = 100;				// after how many iterations feedback is required & the output files should be updated
 									// note: posterior files are updated & dumper routine is called after every updInt*10 iterations
 	double Ztol = -1E90;			// all the modes with logZ < Ztol are ignored
@@ -384,13 +340,6 @@ void run_fit(vector< vector<double> > & data)
 	for(int i = 0; i < ndims; i++)
 	    pWrap[i] = 0;
 
-	pWrap[0] = 1;	// Omega
-	pWrap[2] = 1;   // omega
-
-	if(fit_motion)
-	{
-		pWrap[7] = 1;	// x_0
-	}
 
 	char root[100] = "chains/fitast-";		// root for output files
 	int seed = -1;					// random no. generator seed, if < 0 then take the seed from system clock
@@ -415,15 +364,15 @@ void ParseProgOptions(int argc, char *argv[], bool & param_error)
 {
 	// Init values:
 	x_0_min = 0;
-	x_0_max = TWO_PI;
-	y_0_min = -90 * DEG_TO_RAD;
-	y_0_max = 90 * DEG_TO_RAD;
-	mu_x_min = -10 * MAS_TO_RAD / 365.25;;
-	mu_x_max = 10 * MAS_TO_RAD / 365.25; //20 * MASYR_TO_RADSEC;
-	mu_y_min = -10 * MAS_TO_RAD / 365.25;;
-	mu_y_max = 10 * MAS_TO_RAD / 365.25;; //MASYR_TO_RADSEC;
+	x_0_max = 180;
+	y_0_min = -90;
+	y_0_max = 90;
+	mu_x_min = 0;
+	mu_x_max = 1;
+	mu_y_min = 0;
+	mu_y_max = 1;
 	pi_min = 0;
-	pi_max = 3 * MAS_TO_RAD;
+	pi_max = 1;
 
 	for (int i = 1; i < argc; i++)
 	{
@@ -442,75 +391,49 @@ void ParseProgOptions(int argc, char *argv[], bool & param_error)
 		}
 
 		if(strcmp(argv[i], "-mu_x_min") == 0)
-		{
-			mu_x_min = atof(argv[i+1]) * MASYR_TO_RADSEC;
-		}
+			mu_x_min = atof(argv[i+1]);
 
 		if(strcmp(argv[i], "-mu_x_max") == 0)
-		{
-			mu_x_max = atof(argv[i+1]) * MASYR_TO_RADSEC;
-		}
+			mu_x_max = atof(argv[i+1]);
 
 		if(strcmp(argv[i], "-mu_y_min") == 0)
-		{
-			mu_y_min = atof(argv[i+1]) * MASYR_TO_RADSEC;
-		}
+			mu_y_min = atof(argv[i+1]);
 
 		if(strcmp(argv[i], "-mu_y_max") == 0)
-		{
-			mu_y_max = atof(argv[i+1]) * MASYR_TO_RADSEC;
-		}
+			mu_y_max = atof(argv[i+1]);
 
 		if(strcmp(argv[i], "-pi_min") == 0)
-		{
-			pi_min = atof(argv[i+1]) * MAS_TO_RAD;
-		}
+			pi_min = atof(argv[i+1]);
 
 		if(strcmp(argv[i], "-pi_max") == 0)
-		{
-			pi_max = atof(argv[i+1]) * MAS_TO_RAD;
-		}
+			pi_max = atof(argv[i+1]);
 
 		if(strcmp(argv[i], "-x0_min") == 0)
-		{
-			x_0_min = atof(argv[i+1]) * UNIT_TO_RAD;
-		}
+			x_0_min = atof(argv[i+1]);
 
 		if(strcmp(argv[i], "-x0_max") == 0)
-		{
-			x_0_max = atof(argv[i+1]) * UNIT_TO_RAD;
-		}
+			x_0_max = atof(argv[i+1]);
 
 		if(strcmp(argv[i], "-y0_min") == 0)
-		{
-			y_0_min = atof(argv[i+1]) * UNIT_TO_RAD;
-		}
+			y_0_min = atof(argv[i+1]);
 
 		if(strcmp(argv[i], "-y0_max") == 0)
-		{
-			y_0_max = atof(argv[i+1]) * UNIT_TO_RAD;
-		}
+			y_0_max = atof(argv[i+1]);
 
-		if(strcmp(argv[i], "-units") == 0)
-		{
-			// valid options: mas, deg, rad
-			string tmp = string(argv[i+1]);
+		if(strcmp(argv[i], "-Omega_min") == 0)
+			Omega_min = atof(argv[i + 1]) * DEG_TO_RAD;
 
-			if(tmp == "rad")
-				UNIT_TO_RAD = 1;
-			else if(tmp == "deg")
-				UNIT_TO_RAD = DEG_TO_RAD;
-			else if(tmp == "mas")
-				UNIT_TO_RAD = MAS_TO_RAD;
-			else
-			{
-				printf("Conversion of input units, %s, to radians is not implemented.  Please use rad, deg, or mas.", tmp.c_str());
-				param_error = true;
-			}
+		if(strcmp(argv[i], "-Omega_max") == 0)
+			Omega_max = atof(argv[i + 1]) * DEG_TO_RAD;
 
-			RAD_TO_UNIT = 1.0 / UNIT_TO_RAD;
-		}
+		if(strcmp(argv[i], "-inc_min") == 0)
+			inc_min = atof(argv[i + 1]) * DEG_TO_RAD;
 
+		if(strcmp(argv[i], "-inc_max") == 0)
+			inc_max = atof(argv[i + 1]) * DEG_TO_RAD;
+
+		if(strcmp(argv[i], "-err") == 0)
+			default_error = atof(argv[i + 1]);
 
     }
 }
@@ -530,14 +453,13 @@ int main(int argc, char *argv[])
     if(argc < 2)
     	cout << "Missing filename on command line";
 
-	ParseProgOptions(argc, argv, param_error);
 
     // Read in the input filename:
     string input_rv = string(argv[1]);
 
     // Parse remaining, common parameters.
-    ParseCommandLine(argc, argv, Omega_min, Omega_max, inc_min, inc_max, omega_min, omega_max, tmp, tmp,
-    		alpha_min, alpha_max, e_min, e_max, tau_min, tau_max, T_min, T_max, param_error);
+    ParseCommonParams(argc, argv, omega_min, omega_max, e_min, e_max, tau_min, tau_max, T_min, T_max, param_error);
+    ParseProgOptions(argc, argv, param_error);
 
     if(param_error)
     	return 0;
@@ -546,17 +468,7 @@ int main(int argc, char *argv[])
     // Each row should contain time, RV, [errors]
     const string comment_chars("\\#~$&£%");
 
-//    int pos_size[] = {0, 12, 13, 6, 20, 4};
     vector< vector<int> > split_info;
-//    for(int i = 0; i < 3; i++)
-//    {
-//    	vector<int> tmp;
-//    	tmp.push_back(pos_size[2*i]);
-//    	tmp.push_back(pos_size[2*i+1]);
-//    	split_info.push_back(tmp);
-//    }
-
-    double default_error = MasToRad(5.0);
 
     read_data(input_rv, comment_chars, default_error, split_info, data);
 

@@ -52,7 +52,9 @@ void GenerateData(double Omega, double inc, double omega, double a, double alpha
 		// Compute the positions and velocities
 		t = times[i];
 		GetPositions(Omega, inc, omega, alpha, e, tau, T, t, x, y, z);
-		GetRV(omega, a*sin(inc), e, tau, T, t, rv);
+
+		// Get the RV, remember we need time in seconds here.
+		GetRV(omega, a*sin(inc), e, tau * DAY_TO_SEC, T * DAY_TO_SEC, t * DAY_TO_SEC, rv);
 
 		// TODO: This really isn't a good way of creating
 		// data with noise as we're assuming 6 mas error on positioning, and 0.1 km/s on RV
@@ -84,6 +86,7 @@ void WriteData(double Omega, double inc, double omega, double a, double alpha, d
 	params << "Omega = " << RadToDeg(Omega) << endl;
 	params << "inc   = " << RadToDeg(inc) << endl;
 	params << "omega = " << RadToDeg(omega) << endl;
+	params << "K     = " << a*sin(inc)*TWO_PI / (T * DAY_TO_SEC * sqrt(1 - e*e)) << endl;
 	params << "a     = " << a << endl;
 	params << "asini = " << a * sin(inc) << endl;
 	params << "alpha = " << RadToMas(alpha) << endl;
@@ -142,7 +145,7 @@ int main(int argc, char *argv[])
     double Omega = 123;
     double inc = 36;
     double omega = 250;
-    double a = 5.3E3;
+    double a = 5.3E8;
     double alpha = 30;
     double e = 0.227;
     double tau = 2.34567E6;
@@ -154,7 +157,6 @@ int main(int argc, char *argv[])
     int n_data = 100;
     double t_0 = 2.3E6;
     double dt = 100;
-
 	for (int i = 3; i < argc; i++)
 	{
 		// First see if the user is requesting help:

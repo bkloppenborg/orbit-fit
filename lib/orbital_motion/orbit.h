@@ -40,6 +40,13 @@ double ComputeR(double a, double e, double E);
 void Compute_Coefficients(double Omega, double inc, double omega,
 		double & L1, double & M1, double & N1, double & L2, double & M2, double & N2);
 
+// Computes the (x, y) position of the orbit.
+// Uses the equations defined in "Orbital Motions" by A. E. Roy 2005 pg. 93
+void Compute_xy(double a, double beta, double e,
+		double l1, double l2, double m1, double m2,
+		double cos_E, double sin_E,
+		double & x, double & y);
+
 // Computes the (x, y, z) position of the orbit.
 // Uses the equations defined in "Orbital Motions" by A. E. Roy 2005 pg. 93
 void Compute_xyz(double a, double beta, double e,
@@ -64,6 +71,9 @@ void GetRV(double inc, double omega, double a, double e, double tau, double T, d
 	double & rv);
 
 void GetRV(double omega, double asini, double e, double tau, double T, double t,
+		double & rv);
+
+void GetRV_K(double K, double omega, double e, double tau, double T, double t,
 		double & rv);
 
 #endif // ORBIT_H

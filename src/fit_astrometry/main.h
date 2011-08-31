@@ -35,6 +35,8 @@ void read_data(string filename, string comment_chars, double defaut_error, vecto
 
 void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew);
 
+void dumper(int &nSamples, int &nlive, int &nPar, double **physLive, double **posterior, double *paramConstr, double &maxLogLike, double &logZ, double &logZerr);
+
 void run_fit(vector< vector<double> > & data);
 
 void ParseProgOptions(int argc, char *argv[], bool & param_error);
