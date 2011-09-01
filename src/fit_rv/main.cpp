@@ -273,8 +273,8 @@ void run_fit(vector< vector<double> > & data)
 	scale_K = K_max - K_min;
 	scale_omega = omega_max - omega_min;
 	scale_e = e_max - e_min;
-	scale_T = T_max - T_min;
 	scale_tau = tau_max - tau_min;
+	scale_T = T_max - T_min;
 	scale_gamma = gamma_max - gamma_min;
 	scale_s = s_max - s_min;
 
@@ -282,8 +282,8 @@ void run_fit(vector< vector<double> > & data)
 	prior_K = 1.0 / scale_K;
 	prior_omega = 1.0 / scale_omega;
 	prior_e = 1.0 / scale_e;
-	prior_T = 1.0 / log(T_max / T_min);
 	prior_tau = 1.0 / log(tau_max / tau_min);
+	prior_T = 1.0 / log(T_max / T_min);
 	prior_gamma = 1.0 / scale_gamma;
 	prior_s = 1.0 / scale_s;
 

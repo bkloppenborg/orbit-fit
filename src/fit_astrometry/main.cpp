@@ -211,6 +211,8 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	double t, xi, e_xi, yi, e_yi, P_a, P_d;
 	double x, y, err_x, err_y;
 	double M, E, cos_E, sin_E;
+	double x_0, y_0, mu_x, mu_y, pi;
+	double dt;
 
 	// Pull out the parameters from the cube
 	double Omega = Cube[0] * scale_Omega + Omega_min;
@@ -221,14 +223,32 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	double tau = Cube[5] * scale_tau + tau_min;
 	double T = Cube[6] * scale_T + T_min;
 
+	if(fit_motion)
+	{
+		x_0 = Cube[7] * scale_x_0 + x_0_min;
+		y_0 = Cube[8] * scale_y_0 + y_0_min;
+		mu_x = Cube[9] * scale_mu_x + mu_x_min;
+		mu_y = Cube[10] * scale_mu_y + mu_y_min;
+		pi = Cube[11] * scale_pi + pi_min;
+	}
+
 	// Now set the scaled parameters back in the cube:
 	Cube[0] = Omega * RAD_TO_DEG;
 	Cube[1] = inc * RAD_TO_DEG;
     Cube[2] = omega * RAD_TO_DEG;
-    Cube[4] = alpha;
-    Cube[5] = e;
-    Cube[6] = tau;
-    Cube[7] = T;
+    Cube[3] = alpha;
+    Cube[4] = e;
+    Cube[5] = tau;
+    Cube[6] = T;
+
+	if(fit_motion)
+	{
+		Cube[7] = x_0;
+		Cube[8] = y_0;
+		Cube[9] = mu_x;
+		Cube[10] = mu_y;
+		Cube[11] = pi;
+	}
 
     // Pre-compute a few values that are used frequently:
     double c_Omega = cos(Omega);
@@ -249,6 +269,10 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     double n = ComputeN(T);
 
     double prior = 0;
+
+    if(fit_motion)
+    	prior -= prior_x_0 + prior_y_0 + prior_mu_x + prior_mu_y + prior_pi;
+
     double llike = 0;
 
     for(register int i = 0; i < n_data; i++)
@@ -271,11 +295,22 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     	// Get the XY positions of the orbit
     	Compute_xy(alpha, beta, e, l1, l2, m1, m2, cos_E, sin_E, x, y);
 
+    	if(fit_motion)
+    	{
+    		dt = t - tau;
+    		x += x_0 + mu_x * dt + pi * P_a;
+    		y += y_0 + mu_y * dt + pi * P_d;
+    	}
+
     	err_x = x - xi;
     	err_y = y - yi;
 
-    	llike -= log(TWO_PI * e_xi * e_yi) + err_x * err_x / (2 * e_xi * e_xi) + err_y * err_y / (2 * e_yi * e_yi);
+    	llike -= log(TWO_PI * e_xi * e_yi)
+    			+ err_x * err_x / (2 * e_xi * e_xi)
+    			+ err_y * err_y / (2 * e_yi * e_yi);
     }
+
+    //printf("%f %f %f %f %f %f \n", x, xi, e_xi, y, yi, e_yi);
 
 	// Assign the value and we're done.
 	*lnew = llike + prior;
@@ -283,7 +318,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 
 void dumper(int &nSamples, int &nlive, int &nPar, double **physLive, double **posterior, double *paramConstr, double &maxLogLike, double &logZ, double &logZerr)
 {
-
+	// do nothing for now.
 }
 
 void run_fit(vector< vector<double> > & data)
@@ -298,30 +333,51 @@ void run_fit(vector< vector<double> > & data)
 	printf("e           : %1.4e %1.4e \n", e_min, e_max);
 	printf("T (time)    : %1.4e %1.4e \n", T_min, T_max);
 	printf("tau (time)  : %1.4e %1.4e \n", tau_min, tau_max);
-	printf("gamma (km/s): %1.4e %1.4e \n", gamma_min, gamma_max);
 
-	if(fit_turbulence)
-		printf("s (km/s)    : %1.4e %1.4e \n", s_min, s_max);
+	if(fit_motion)
+	{
+		printf("x0 (arb u)  : %1.4e %1.4e \n", x_0_min, x_0_max);
+		printf("y0 (arb u)  : %1.4e %1.4e \n", y_0_min, y_0_max);
+		printf("mu_x (u/t)  : %1.4e %1.4e \n", mu_x_min, mu_x_max);
+		printf("mu_y (u/t)  : %1.4e %1.4e \n", mu_y_min, mu_y_max);
+		printf("pi (arb u)  : %1.4e %1.4e \n", pi_min, pi_max);
+	}
 
 	// All of the parameters have been set, compute scale factors:
-
+	scale_Omega = Omega_max - Omega_min;
+	scale_inc = inc_max - inc_min;
 	scale_omega = omega_max - omega_min;
+	scale_alpha = alpha_max - alpha_min;
 	scale_e = e_max - e_min;
-	scale_T = T_max - T_min;
 	scale_tau = tau_max - tau_min;
-
+	scale_T = T_max - T_min;
+	scale_x_0 = x_0_max - x_0_min;
+	scale_y_0 = y_0_max - y_0_min;
+	scale_mu_x = mu_x_max - mu_x_min;
+	scale_mu_y = mu_y_max - mu_x_min;
+	scale_pi = pi_max - pi_min;
 
 	// Now compute the (sometimes partial) priors:
-	prior_K = 1.0 / scale_K;
+	prior_Omega = 1.0 / scale_Omega;
+	prior_inc = 1.0 / scale_inc;
 	prior_omega = 1.0 / scale_omega;
+	prior_alpha = 1.0 / scale_alpha;
 	prior_e = 1.0 / scale_e;
-	prior_T = 1.0 / log(T_max / T_min);
 	prior_tau = 1.0 / log(tau_max / tau_min);
-
+	prior_T = 1.0 / log(T_max / T_min);
+	prior_x_0 = 1.0 / scale_x_0;
+	prior_y_0 = 1.0 / scale_y_0;
+	prior_mu_x = 1.0 / scale_mu_x;
+	prior_mu_y = 1.0 / scale_mu_y;
+	prior_pi = 1.0 / scale_pi;
 
 
     n_data = data.size();
     printf("Found %i data points.\n", n_data);
+    int opt_params = 0;
+
+    if(fit_motion)
+    	opt_params += 5;
 
 	// set the MultiNest sampling parameters
 	int mmodal = 1;					// do mode separation?
@@ -329,9 +385,9 @@ void run_fit(vector< vector<double> > & data)
 	int nlive = 1000;				// number of live points
 	double efr = 1.0;				// set the required efficiency
 	double tol = 0.5;				// tol, defines the stopping criteria
-	int ndims = 7;					// dimensionality (no. of free parameters)
-	int nPar = 7;					// total no. of parameters including free & derived parameters
-	int nClsPar = 7;				// no. of parameters to do mode separation on
+	int ndims = 7 + opt_params;		// dimensionality (no. of free parameters)
+	int nPar = 7 + opt_params;		// total no. of parameters including free & derived parameters
+	int nClsPar = 7 + opt_params;	// no. of parameters to do mode separation on
 	int updInt = 100;				// after how many iterations feedback is required & the output files should be updated
 									// note: posterior files are updated & dumper routine is called after every updInt*10 iterations
 	double Ztol = -1E90;			// all the modes with logZ < Ztol are ignored
@@ -339,6 +395,16 @@ void run_fit(vector< vector<double> > & data)
 	int pWrap[ndims];				// which parameters to have periodic boundary conditions?
 	for(int i = 0; i < ndims; i++)
 	    pWrap[i] = 0;
+
+	// Enable wrapping for some parameters if they occupy the full range:
+	if(Omega_min == 0 && Omega_max == TWO_PI)
+		pWrap[0] = 1;
+
+	if(inc_min == 0 && inc_max == TWO_PI)
+		pWrap[1] = 1;
+
+	if(omega_min == 0 && omega_max == TWO_PI)
+		pWrap[2] = 1;
 
 
 	char root[100] = "chains/fitast-";		// root for output files
@@ -363,6 +429,14 @@ void run_fit(vector< vector<double> > & data)
 void ParseProgOptions(int argc, char *argv[], bool & param_error)
 {
 	// Init values:
+	default_error = 1;
+	alpha_min = 0;
+	alpha_max = 1;
+	Omega_min = 0;
+	Omega_max = TWO_PI;
+	inc_min = -PI;
+	inc_max = PI;
+
 	x_0_min = 0;
 	x_0_max = 180;
 	y_0_min = -90;
@@ -376,7 +450,7 @@ void ParseProgOptions(int argc, char *argv[], bool & param_error)
 
 	for (int i = 1; i < argc; i++)
 	{
-		// First see if the user is requesting help:
+		// Help
 		if(strcmp(argv[i], "-h") == 0)
 		{
 			print_help();
@@ -431,6 +505,12 @@ void ParseProgOptions(int argc, char *argv[], bool & param_error)
 
 		if(strcmp(argv[i], "-inc_max") == 0)
 			inc_max = atof(argv[i + 1]) * DEG_TO_RAD;
+
+		if(strcmp(argv[i], "-alpha_min") == 0)
+			alpha_min = atof(argv[i + 1]);
+
+		if(strcmp(argv[i], "-alpha_max") == 0)
+			alpha_max = atof(argv[i + 1]);
 
 		if(strcmp(argv[i], "-err") == 0)
 			default_error = atof(argv[i + 1]);
