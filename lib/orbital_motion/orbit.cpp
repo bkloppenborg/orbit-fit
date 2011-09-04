@@ -183,12 +183,13 @@ void Compute_Coefficients(double Omega, double inc, double omega,
     double c_omega = cos(omega);
     double s_omega = sin(omega);
 
-    // Note, if an error is found here, be sure to update the GetRV and GetXY functions.
-    L1 = c_Omega * c_omega - s_Omega * s_omega * c_inc;
-    M1 = s_Omega * c_omega + c_Omega * s_omega * c_inc;
+    // NOTE: Roy's orbital motion equations assume the ecliptic is at i = 0
+    // astronomy doesn't use the same convention so L <-> M compared to Roy.
+    M1 = c_Omega * c_omega - s_Omega * s_omega * c_inc;
+    L1 = s_Omega * c_omega + c_Omega * s_omega * c_inc;
     N1 = s_omega * s_inc;
-    L2 = -c_Omega * s_omega - s_Omega * c_omega * c_inc;
-    M2 = -s_Omega * s_omega + c_Omega * c_omega * c_inc;
+    M2 = -c_Omega * s_omega - s_Omega * c_omega * c_inc;
+    L2 = -s_Omega * s_omega + c_Omega * c_omega * c_inc;
     N2 = c_omega * s_inc;
 }
 

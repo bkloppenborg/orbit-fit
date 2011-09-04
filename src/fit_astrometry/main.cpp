@@ -91,6 +91,8 @@ int n_data;
 int opt_params = 0;
 
 bool fit_motion = false;
+bool read_r_theta = false;
+bool read_no_error = false;
 
 
 // Prints out help describing the options on the command line
@@ -121,6 +123,23 @@ void read_data(string filename, string comment_chars, double default_error, vect
 	vector < vector<double> > results;
 
 	double t, x, y, e_x, e_y, P_alpha, P_delta;
+	double r, theta;
+	int i_x = 1;
+	int i_ex = 2;
+	int i_y = 3;
+	int i_ey = 4;
+	int i_Pa = 5;
+	int i_Pd = 6;
+
+	if(read_no_error)
+	{
+		i_y -= 1;
+		i_ex = 5;
+		i_ey = 5;
+		i_Pa -= 2;
+		i_Pd -= 2;
+
+	}
 
 	// Now iterate through the lines and tokenize them.  Notice, we use vector.at(n) instead of vector[n]
 	// so that we can catch the signals from exceptions.  The data file is only parsed once so this is ok.
@@ -138,8 +157,8 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		try
 		{
 			t = atof(tokens.at(0).c_str());
-			x = atof(tokens.at(1).c_str());
-			y = atof(tokens.at(3).c_str());
+			x = atof(tokens.at(i_x).c_str());
+			y = atof(tokens.at(i_y).c_str());
 		}
 		catch(...)
 		{
@@ -149,7 +168,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		// Now for the uncertainties (these may not exist)
 		try
 		{
-			e_x = atof(tokens.at(2).c_str());
+			e_x = atof(tokens.at(i_ex).c_str());
 		}
 		catch(...)
 		{
@@ -158,7 +177,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 
 		try
 		{
-			e_y = atof(tokens.at(4).c_str());
+			e_y = atof(tokens.at(i_ey).c_str());
 		}
 		catch(...)
 		{
@@ -168,7 +187,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 		// Lastly the parallax factors
 		try
 		{
-			P_alpha = atof(tokens.at(5).c_str());
+			P_alpha = atof(tokens.at(i_Pa).c_str());
 		}
 		catch(...)
 		{
@@ -177,7 +196,7 @@ void read_data(string filename, string comment_chars, double default_error, vect
 
 		try
 		{
-			P_delta = atof(tokens.at(6).c_str());
+			P_delta = atof(tokens.at(i_Pd).c_str());
 		}
 		catch(...)
 		{
@@ -190,7 +209,19 @@ void read_data(string filename, string comment_chars, double default_error, vect
 			e_y = default_error;
 
 		// Enable if you want to see the data.
-		//printf("%f %f %f %f %f \n", t, x, e_x, y, e_y);
+		//printf("%i %i %i %i %i %i %i \n", 0, i_x, i_ex, i_y, i_ey, i_Pa, i_Pd);
+		//printf("%f %f %f %f %f %f %f \n", t, x, e_x, y, e_y, P_alpha, P_delta);
+
+		// The file can also be in r theta format.  If so, we need to convert the file over to (x,y)
+		if(read_r_theta)
+		{
+			r = x;
+			theta = y;
+			x = r * cos(theta * DEG_TO_RAD);
+			y = r * sin(theta * DEG_TO_RAD);
+
+			// TODO: need to implement uncertainties here too
+		}
 
 		// Push this station on to the list of stations for this array.
 		vector<double> temp;
@@ -259,10 +290,10 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     double s_omega = sin(omega);
 
     // Note, if an error is found here, be sure to update the GetRV and GetXY functions.
-    double l1 = c_Omega * c_omega - s_Omega * s_omega * c_inc;
-    double m1 = s_Omega * c_omega + c_Omega * s_omega * c_inc;
-    double l2 = -c_Omega * s_omega - s_Omega * c_omega * c_inc;
-    double m2 = -s_Omega * s_omega + c_Omega * c_omega * c_inc;
+    double m1 = c_Omega * c_omega - s_Omega * s_omega * c_inc;
+    double l1 = s_Omega * c_omega + c_Omega * s_omega * c_inc;
+    double m2 = -c_Omega * s_omega - s_Omega * c_omega * c_inc;
+    double l2 = -s_Omega * s_omega + c_Omega * c_omega * c_inc;
 
     // A few pre-computed values
     double beta = sqrt(1 - e*e);
@@ -459,10 +490,13 @@ void ParseProgOptions(int argc, char *argv[], bool & param_error)
 
 		// First see if the user is requesting help:
 		if(strcmp(argv[i], "-motion") == 0)
-		{
-			printf("NOTE: Fitting zero points, proper motions, and parallax.\n");
 			fit_motion = true;
-		}
+
+		if(strcmp(argv[i], "-r_theta") == 0)
+			read_r_theta = true;
+
+		if(strcmp(argv[i], "-noerr") == 0)
+			read_no_error = true;
 
 		if(strcmp(argv[i], "-mu_x_min") == 0)
 			mu_x_min = atof(argv[i+1]);
@@ -512,10 +546,20 @@ void ParseProgOptions(int argc, char *argv[], bool & param_error)
 		if(strcmp(argv[i], "-alpha_max") == 0)
 			alpha_max = atof(argv[i + 1]);
 
-		if(strcmp(argv[i], "-err") == 0)
+		if(strcmp(argv[i], "-default_err") == 0)
 			default_error = atof(argv[i + 1]);
 
     }
+
+	if(fit_motion)
+		printf("NOTE: Fitting zero points, proper motions, and parallax.\n");
+
+	if(read_r_theta)
+		printf("NOTE: Reading in data in r-theta format.  Converting to (x,y).\n");
+
+	if(read_no_error)
+		printf("NOTE: Reading data file without error columns.  \n"
+			   "      Specify -err n.nn to indicate the default error otherwise 1.00 is used.\n");
 }
 
 // The main routine.  Basically just used to parse out some parameters before handing
