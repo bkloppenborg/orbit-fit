@@ -19,7 +19,7 @@
 #include <cmath>
 #include <float.h>
 
-#include "main.h"
+#include "fitrv.h"
 #include "ReadTextFile.h"
 #include "orbit.h"
 #include "common.h"

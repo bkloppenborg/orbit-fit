@@ -3,11 +3,15 @@ project(orbit Fortran)
 
 file(GLOB MULTINEST_SOURCE *.f90 *.F90)
 
+set(MPI_LIB "MPI_LIB-NOTFOUND")
+set(MPI_LIBRARY "MPI_LIB-NOTFOUND")
+set(MPI_FOUND)
 set(MPI_COMPILER mpif90)
 find_package(MPI)
 if(MPI_FOUND)
     include_directories(${MPI_INCLUDE_PATH})
     set(CMAKE_Fortran_COMPILER ${MPI_COMPILER})
+    message(STATUS "NOTE: Set Fortran Compiler to " ${CMAKE_Fortran_COMPILER})
     set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS})
 endif(MPI_FOUND)
 
