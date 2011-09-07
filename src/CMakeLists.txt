@@ -72,3 +72,8 @@ add_executable(fitast common.cpp multinest_inf.cpp ${FIT_AST_SOURCE})
 SET_TARGET_PROPERTIES(fitast PROPERTIES LINKER_LANGUAGE Fortran)
 target_link_libraries(fitast orbit textio multinest ${MPI_LIBRARY} ${LAPACK_LIBRARIES})
 
+file(GLOB FIT_BOTH_SOURCE ./fitboth*.cpp)
+add_executable(fitboth common.cpp multinest_inf.cpp fitast_common.cpp fitrv_common.cpp ${FIT_BOTH_SOURCE})
+SET_TARGET_PROPERTIES(fitboth PROPERTIES LINKER_LANGUAGE Fortran)
+target_link_libraries(fitboth orbit textio multinest ${MPI_LIBRARY} ${LAPACK_LIBRARIES})
+

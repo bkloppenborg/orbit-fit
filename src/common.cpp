@@ -10,6 +10,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <iostream>
+#include <cstdio>
 
 #include "common.h"
 #include "constants.h"
@@ -75,7 +76,7 @@ void ParseCommonParams(int argc, char *argv[], bool & param_error)
     e_max = 1;
     tau_min = 2.3E6;
     tau_max = 2.5E6;
-    T_min = 0;
+    T_min = 1;
     T_max = 1E4;
 
     // Parse common options to limit these values further.
@@ -149,4 +150,12 @@ void ParseCommonParams(int argc, char *argv[], bool & param_error)
 		cout << "Error: T_min exceeds T_max, exiting.";
 	}
 
+}
+
+void print_common_param_limits()
+{
+	printf("omega (deg) : %1.4e %1.4e \n", omega_min * RAD_TO_DEG, omega_max * RAD_TO_DEG);
+	printf("e           : %1.4e %1.4e \n", e_min, e_max);
+	printf("T (time)    : %1.4e %1.4e \n", T_min, T_max);
+	printf("tau (time)  : %1.4e %1.4e \n", tau_min, tau_max);
 }

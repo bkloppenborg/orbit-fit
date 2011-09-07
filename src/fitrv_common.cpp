@@ -29,11 +29,15 @@
 #include "multinest_inf.h"
 
 using namespace std;
+using namespace fitrv;
 
 // Data and number of data.
-double default_error;
-vector< vector<double> > data;
-int n_data;
+namespace fitrv
+{
+	double default_error;
+}
+vector< vector<double> > rv_data;
+int n_rv_data;
 
 // Push the parameter names onto the vector.
 vector<string> param_names;
@@ -84,7 +88,10 @@ double s_0 = 1;
 double K_0 = 1;
 
 // Counter for optional parameters:
-int opt_params = 0;
+namespace fitrv
+{
+	int opt_params = 0;
+}
 bool fit_turbulence = false;
 
 
@@ -139,7 +146,7 @@ void fitrv::read_data(string filename, string comment_chars, vector< vector<int>
 		temp.push_back(t);
 		temp.push_back(rv);
 		temp.push_back(e_rv);
-		data.push_back(temp);
+		rv_data.push_back(temp);
 	}
 }
 
@@ -151,22 +158,22 @@ void fitrv::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	double t, rvi, e_rvi;
 	double rv, err, tmp, cos_E, sin_E;
 
-	double K = Cube[0] * scale_K + K_min;
-	double omega = Cube[1] * scale_omega + omega_min;
-	double e = Cube[2] * scale_e + e_min;
-	double tau = Cube[3] * scale_tau + tau_min;
-	double T = Cube[4] * scale_T + T_min;
-	double gamma = Cube[5] * scale_gamma + gamma_min;
+	double omega 	= Cube[0] * scale_omega + omega_min;
+	double e 		= Cube[1] * scale_e + e_min;
+	double tau 		= Cube[2] * scale_tau + tau_min;
+	double T 		= Cube[3] * scale_T + T_min;
+	double K 		= Cube[4] * scale_K + K_min;
+	double gamma 	= Cube[5] * scale_gamma + gamma_min;
 
     if(fit_turbulence)
     	s = Cube[6] * scale_s + s_min;
 
     // Now set the parameters for feedback to multinest
-    Cube[0] = K;
-    Cube[1] = omega * RAD_TO_DEG;
-    Cube[2] = e;
-    Cube[3] = tau;
-    Cube[4] = T;
+    Cube[0] = omega * RAD_TO_DEG;
+    Cube[1] = e;
+    Cube[2] = tau;
+    Cube[3] = T;
+    Cube[4] = K;
     Cube[5] = gamma;
 
     if(fit_turbulence)
@@ -180,7 +187,7 @@ void fitrv::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 
     // Note, priors are derived from scale factors (positive numbers) in most cases,
     // so here we need to multiply by -1 on prior values to get the right scaling.
-    double prior = 1.0 / (K + K_0) * 1.0 / log(1 + (K_max / K_0)*pow(T_min/T, 1.0 / 3)*(1.0 / beta))
+    double prior = 1.0 / (K + K_0) * 1.0 / log(1 + (K_max / K_0)*pow(T_min/T, 1.0 / 3)*(1.0 / beta));
     		- prior_omega
     		- prior_e
     		- 1.0 / T * prior_T
@@ -190,14 +197,14 @@ void fitrv::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     if(fit_turbulence)
     	prior -= 1.0 / (s + s_0) * prior_s;
 
-    double llike = -0.5 * n_data * log(TWO_PI);
+    double llike = -0.5 * n_rv_data * log(TWO_PI);
 
-    for(register int i = 0; i < n_data; i++)
+    for(register int i = 0; i < n_rv_data; i++)
     {
     	// Look up the data
-    	t = data[i][0];
-    	rvi = data[i][1];
-    	e_rvi = data[i][2];
+    	t = rv_data[i][0];
+    	rvi = rv_data[i][1];
+    	e_rvi = rv_data[i][2];
 
     	tmp = e_rvi * e_rvi + s * s;
 
@@ -215,13 +222,13 @@ void fitrv::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     }
 
     // printf("%0.4f %0.4f %0.4f %0.4f %0.4f %0.4f \n", K, omega * RAD_TO_DEG, e, T, tau, gamma);
-    // printf("%0.4f %0.4f %0.4f\n", rv, rvi, llike);
+    //printf("RV: %f %f\n", llike, prior);
 
 	*lnew = llike + prior;
 }
 
 // Dumper
-void fitrv::dumper(int &nSamples, int &nlive, int &nPar, double **physLive, double **posterior, double *paramConstr, double &maxLogLike, double &logZ, double &logZerr)
+void fitrv::dumper(int *nSamples, int *nlive, int *nPar, double **physLive, double **posterior, double *paramConstr, double *maxLogLike, double *logZ, double *logZerr)
 {
 
 /*
@@ -239,22 +246,8 @@ void fitrv::dumper(int &nSamples, int &nlive, int &nPar, double **physLive, doub
 }
 
 
-
-void fitrv::run_fit()
+void fitrv::compute_scales()
 {
-	// Print out what parameters are being used here:
-	printf("Starting fit with the following limits: \n");
-	printf("Param       : Min        Max\n");
-	printf("K (km/s)    : %1.4e %1.4e \n", K_min, K_max);
-	printf("omega (deg) : %1.4e %1.4e \n", omega_min * RAD_TO_DEG, omega_max * RAD_TO_DEG);
-	printf("e           : %1.4e %1.4e \n", e_min, e_max);
-	printf("T (time)    : %1.4e %1.4e \n", T_min, T_max);
-	printf("tau (time)  : %1.4e %1.4e \n", tau_min, tau_max);
-	printf("gamma (km/s): %1.4e %1.4e \n", gamma_min, gamma_max);
-
-	if(fit_turbulence)
-		printf("s (km/s)    : %1.4e %1.4e \n", s_min, s_max);
-
 	// All of the parameters have been set, compute scale factors:
 	scale_K = K_max - K_min;
 	scale_omega = omega_max - omega_min;
@@ -263,7 +256,10 @@ void fitrv::run_fit()
 	scale_T = T_max - T_min;
 	scale_gamma = gamma_max - gamma_min;
 	scale_s = s_max - s_min;
+}
 
+void fitrv::compute_partial_priors()
+{
 	// Now compute the (sometimes partial) priors:
 	prior_K = 1.0 / scale_K;
 	prior_omega = 1.0 / scale_omega;
@@ -272,9 +268,21 @@ void fitrv::run_fit()
 	prior_T = 1.0 / log(T_max / T_min);
 	prior_gamma = 1.0 / scale_gamma;
 	prior_s = 1.0 / scale_s;
+}
 
-    n_data = data.size();
-    printf("Found %i data points.\n", n_data);
+void fitrv::run_fit()
+{
+	// Print out what parameters are being used here:
+	printf("Starting fit with the following limits: \n");
+	printf("Param       : Min        Max\n");
+	print_common_param_limits();
+	fitrv::print_param_limits();
+
+	compute_scales();
+	compute_partial_priors();
+
+    n_rv_data = rv_data.size();
+    printf("Found %i RV data points.\n", n_rv_data);
 
     if(fit_turbulence)
     	opt_params += 1;
@@ -299,7 +307,7 @@ void fitrv::run_fit()
 
 	// omega can have periodic boundary conditions if it occupies 0 ... 2pi
 	if(omega_min == 0 && omega_max == TWO_PI)
-		pWrap[1] = 1;
+		pWrap[0] = 1;
 
 	char root[100] = "chains/fitrv-";		// root for output files
 	int seed = -1;					// random no. generator seed, if < 0 then take the seed from system clock
@@ -371,4 +379,13 @@ void fitrv::ParseProgOptions(int argc, char *argv[], bool & param_error)
 		gamma_min = -K_max;
 	if(gamma_max == 0)
 		gamma_max = K_max;
+}
+
+void fitrv::print_param_limits()
+{
+	printf("K (km/s)    : %1.4e %1.4e \n", K_min, K_max);
+	printf("gamma (km/s): %1.4e %1.4e \n", gamma_min, gamma_max);
+
+	if(fit_turbulence)
+		printf("s (km/s)    : %1.4e %1.4e \n", s_min, s_max);
 }

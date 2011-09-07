@@ -28,6 +28,7 @@
 #include "multinest_inf.h"
 
 using namespace std;
+using namespace fitast;
 
 // Global Variables (scales and (sometimes partial) priors:
 double x_0_min;
@@ -83,13 +84,19 @@ extern double prior_e;
 extern double prior_tau;
 extern double prior_T;
 
-vector< vector<double> > data;
-double default_error;
-int n_data;
+vector< vector<double> > ast_data;
+namespace fitast
+{
+	double default_error;
+}
+int n_ast_data;
 
 // Optional parameters
 // orbit_param_offset = 0 -> don't fit zero point, proper motion, parallax, etc.  Other valid value = 5.
-int opt_params = 0;
+namespace fitast
+{
+	int opt_params = 0;
+}
 
 bool fit_motion = false;
 bool read_r_theta = false;
@@ -211,7 +218,7 @@ void fitast::read_data(string filename, string comment_chars, vector< vector<int
 		temp.push_back(e_y);
 		temp.push_back(P_alpha);
 		temp.push_back(P_delta);
-		data.push_back(temp);
+		ast_data.push_back(temp);
 	}
 }
 
@@ -225,31 +232,31 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	double dt;
 
 	// Pull out the parameters from the cube
-	double Omega = Cube[0] * scale_Omega + Omega_min;
-	double inc = Cube[1] * scale_inc + inc_min;
-	double omega = Cube[2] * scale_omega + omega_min;
-	double alpha = Cube[3] * scale_alpha + alpha_min;
-	double e = Cube[4] * scale_e + e_min;
-	double tau = Cube[5] * scale_tau + tau_min;
-	double T = Cube[6] * scale_T + T_min;
+	double omega 	= Cube[0] * scale_omega + omega_min;
+	double e 		= Cube[1] * scale_e + e_min;
+	double tau 		= Cube[2] * scale_tau + tau_min;
+	double T 		= Cube[3] * scale_T + T_min;
+	double Omega 	= Cube[4] * scale_Omega + Omega_min;
+	double inc 		= Cube[5] * scale_inc + inc_min;
+	double alpha 	= Cube[6] * scale_alpha + alpha_min;
 
 	if(fit_motion)
 	{
-		x_0 = Cube[7] * scale_x_0 + x_0_min;
-		y_0 = Cube[8] * scale_y_0 + y_0_min;
-		mu_x = Cube[9] * scale_mu_x + mu_x_min;
-		mu_y = Cube[10] * scale_mu_y + mu_y_min;
-		pi = Cube[11] * scale_pi + pi_min;
+		x_0 	= Cube[7] * scale_x_0 + x_0_min;
+		y_0 	= Cube[8] * scale_y_0 + y_0_min;
+		mu_x 	= Cube[9] * scale_mu_x + mu_x_min;
+		mu_y 	= Cube[10] * scale_mu_y + mu_y_min;
+		pi 		= Cube[11] * scale_pi + pi_min;
 	}
 
 	// Now set the scaled parameters back in the cube:
-	Cube[0] = Omega * RAD_TO_DEG;
-	Cube[1] = inc * RAD_TO_DEG;
-    Cube[2] = omega * RAD_TO_DEG;
-    Cube[3] = alpha;
-    Cube[4] = e;
-    Cube[5] = tau;
-    Cube[6] = T;
+    Cube[0] = omega * RAD_TO_DEG;
+    Cube[1] = e;
+    Cube[2] = tau;
+    Cube[3] = T;
+	Cube[4] = Omega * RAD_TO_DEG;
+	Cube[5] = inc * RAD_TO_DEG;
+    Cube[6] = alpha;
 
 	if(fit_motion)
 	{
@@ -285,16 +292,16 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 
     double llike = 0;
 
-    for(register int i = 0; i < n_data; i++)
+    for(register int i = 0; i < n_ast_data; i++)
     {
     	// Pull out the data:
-    	t = data[i][0];
-    	xi = data[i][1];
-    	e_xi = data[i][2];
-    	yi = data[i][3];
-    	e_yi = data[i][4];
-    	P_a = data[i][5];
-    	P_d = data[i][6];
+    	t = ast_data[i][0];
+    	xi = ast_data[i][1];
+    	e_xi = ast_data[i][2];
+    	yi = ast_data[i][3];
+    	e_yi = ast_data[i][4];
+    	P_a = ast_data[i][5];
+    	P_d = ast_data[i][6];
 
     	// Compute orbital elements:
         M = ComputeM(tau, n, t);
@@ -321,38 +328,20 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     }
 
     //printf("%f %f %f %f %f %f \n", x, xi, e_xi, y, yi, e_yi);
+    //printf("AST: %f %f\n", llike, prior);
 
-	// Assign the value and we're done.
+    // Assign the value and we're done.
 	*lnew = llike + prior;
 }
 
-void fitast::dumper(int &nSamples, int &nlive, int &nPar, double **physLive, double **posterior, double *paramConstr, double &maxLogLike, double &logZ, double &logZerr)
+void fitast::dumper(int *nSamples, int *nlive, int *nPar, double **physLive, double **posterior, double *paramConstr, double *maxLogLike, double *logZ, double *logZerr)
 {
 	// do nothing for now.
 }
 
-void fitast::run_fit()
+
+void fitast::compute_scales()
 {
-	// Setup the interface to multinest, run it.
-	// Print out what parameters are being used here:
-	printf("Starting fit with the following limits: \n");
-	printf("Param       : Min        Max\n");
-	printf("Omega (deg) : %1.4e %1.4e \n", Omega_min * RAD_TO_DEG, Omega_max * RAD_TO_DEG);
-	printf("inc   (deg) : %1.4e %1.4e \n", inc_min * RAD_TO_DEG, inc_max * RAD_TO_DEG);
-	printf("omega (deg) : %1.4e %1.4e \n", omega_min * RAD_TO_DEG, omega_max * RAD_TO_DEG);
-	printf("e           : %1.4e %1.4e \n", e_min, e_max);
-	printf("T (time)    : %1.4e %1.4e \n", T_min, T_max);
-	printf("tau (time)  : %1.4e %1.4e \n", tau_min, tau_max);
-
-	if(fit_motion)
-	{
-		printf("x0 (arb u)  : %1.4e %1.4e \n", x_0_min, x_0_max);
-		printf("y0 (arb u)  : %1.4e %1.4e \n", y_0_min, y_0_max);
-		printf("mu_x (u/t)  : %1.4e %1.4e \n", mu_x_min, mu_x_max);
-		printf("mu_y (u/t)  : %1.4e %1.4e \n", mu_y_min, mu_y_max);
-		printf("pi (arb u)  : %1.4e %1.4e \n", pi_min, pi_max);
-	}
-
 	// All of the parameters have been set, compute scale factors:
 	scale_Omega = Omega_max - Omega_min;
 	scale_inc = inc_max - inc_min;
@@ -366,7 +355,10 @@ void fitast::run_fit()
 	scale_mu_x = mu_x_max - mu_x_min;
 	scale_mu_y = mu_y_max - mu_x_min;
 	scale_pi = pi_max - pi_min;
+}
 
+void fitast::compute_partial_priors()
+{
 	// Now compute the (sometimes partial) priors:
 	prior_Omega = 1.0 / scale_Omega;
 	prior_inc = 1.0 / scale_inc;
@@ -380,11 +372,22 @@ void fitast::run_fit()
 	prior_mu_x = 1.0 / scale_mu_x;
 	prior_mu_y = 1.0 / scale_mu_y;
 	prior_pi = 1.0 / scale_pi;
+}
 
+void fitast::run_fit()
+{
+	// Print out what parameters are being used here:
+	printf("Starting fit with the following limits: \n");
+	printf("Param       : Min        Max\n");
+	print_common_param_limits();
+	fitast::print_param_limits();
 
-    n_data = data.size();
-    printf("Found %i data points.\n", n_data);
-    int opt_params = 0;
+	compute_scales();
+	compute_partial_priors();
+
+    n_ast_data = ast_data.size();
+    printf("Found %i data astrometric points.\n", n_ast_data);
+    opt_params = 0;
 
     if(fit_motion)
     	opt_params += 5;
@@ -407,14 +410,14 @@ void fitast::run_fit()
 	    pWrap[i] = 0;
 
 	// Enable wrapping for some parameters if they occupy the full range:
-	if(Omega_min == 0 && Omega_max == TWO_PI)
+	if(omega_min == 0 && omega_max == TWO_PI)
 		pWrap[0] = 1;
 
-	if(inc_min == 0 && inc_max == TWO_PI)
-		pWrap[1] = 1;
+	if(Omega_min == 0 && Omega_max == TWO_PI)
+		pWrap[4] = 1;
 
-	if(omega_min == 0 && omega_max == TWO_PI)
-		pWrap[2] = 1;
+	if(inc_min == -PI && inc_max == PI)
+		pWrap[5] = 1;
 
 
 	char root[100] = "chains/fitast-";		// root for output files
@@ -539,4 +542,22 @@ void fitast::ParseProgOptions(int argc, char *argv[], bool & param_error)
 	if(read_no_error)
 		printf("NOTE: Reading data file without error columns.  \n"
 			   "      Specify -err n.nn to indicate the default error otherwise 1.00 is used.\n");
+}
+
+void fitast::print_param_limits()
+{
+	// Setup the interface to multinest, run it.
+	// Print out what parameters are being used here:
+	printf("Omega (deg) : %1.4e %1.4e \n", Omega_min * RAD_TO_DEG, Omega_max * RAD_TO_DEG);
+	printf("inc   (deg) : %1.4e %1.4e \n", inc_min * RAD_TO_DEG, inc_max * RAD_TO_DEG);
+	printf("alpha (arb) : %1.4e %1.4e \n", alpha_min, alpha_max);
+
+	if(fit_motion)
+	{
+		printf("x0 (arb u)  : %1.4e %1.4e \n", x_0_min, x_0_max);
+		printf("y0 (arb u)  : %1.4e %1.4e \n", y_0_min, y_0_max);
+		printf("mu_x (u/t)  : %1.4e %1.4e \n", mu_x_min, mu_x_max);
+		printf("mu_y (u/t)  : %1.4e %1.4e \n", mu_y_min, mu_y_max);
+		printf("pi (arb u)  : %1.4e %1.4e \n", pi_min, pi_max);
+	}
 }

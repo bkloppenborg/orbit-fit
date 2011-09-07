@@ -20,4 +20,6 @@ double RadToMas(double value);
 
 void ParseCommonParams(int argc, char *argv[], bool & param_error);
 
+void print_common_param_limits();
+
 #endif //COMMON_H

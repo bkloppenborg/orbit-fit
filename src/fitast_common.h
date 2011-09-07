@@ -25,11 +25,16 @@ namespace fitast
 
 	void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew);
 
-	void dumper(int &nSamples, int &nlive, int &nPar, double **physLive, double **posterior, double *paramConstr, double &maxLogLike, double &logZ, double &logZerr);
+	void dumper(int *nSamples, int *nlive, int *nPar, double **physLive, double **posterior, double *paramConstr, double *maxLogLike, double *logZ, double *logZerr);
+
+	void compute_scales();
+	void compute_partial_priors();
 
 	void run_fit();
 
 	void ParseProgOptions(int argc, char *argv[], bool & param_error);
+
+	void print_param_limits();
 
 }
 

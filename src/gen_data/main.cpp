@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <vector>
 #include <iostream>
+#include <cstdlib>
 #include <fstream>
 #include <math.h>
 #include "orbit.h"
@@ -24,12 +25,12 @@
 using namespace std;
 
 // Prints out help describing the options on the command line
-void PrintHelp()
+void print_help()
 {
 	string usage = "gendata - RV/Astrometry Test Dataset Generator\n"
 	"Creates random sample orbital data to test the fitting routines\n\n"
 	"Usage: \n"
-	" gendata output_file_rv output_file_astrometry output_file_parameters [optional parameters]\n"
+	" gendata base_file_name [optional parameters]\n"
 	" \n"
 	"Optional Arguments: \n"
 	" -h     Prints this message \n"
@@ -38,8 +39,71 @@ void PrintHelp()
 	cout << usage << "\n";
 }
 
+// Parse command-line options that are specific to this program
+void ParseProgOptions(int argc, char *argv[],
+		double & Omega, double & inc, double & omega,
+		double & alpha, double&  K,
+		double & e, double & T, double & tau,
+		bool & param_error)
+{
+	// Init the random number generator.
+	// Comment the RanInit line to make the code generate the same orbital parameters.
+	static Rand_t random_seed;
+	RanInit(random_seed);
+
+	Omega = Randouble(random_seed) * 360;
+	inc = Randouble(random_seed) * 360 - 180;
+	omega = Randouble(random_seed) * 360;
+	alpha = Randouble(random_seed) * 100;
+	K = Randouble(random_seed) * 30;
+	e = Randouble(random_seed);
+	T = Randouble(random_seed) * 20;
+	tau = Randouble(random_seed) * 2000;
+
+	for (int i = 1; i < argc; i++)
+	{
+		// Help
+		if(strcmp(argv[i], "-h") == 0)
+		{
+			print_help();
+			param_error = true;
+		}
+
+		// First see if the user is requesting help:
+		if(strcmp(argv[i], "-Omega") == 0)
+			Omega = atof(argv[i+1]);
+
+		if(strcmp(argv[i], "-inc") == 0)
+			inc = atof(argv[i+1]);
+
+		if(strcmp(argv[i], "-omega") == 0)
+			omega = atof(argv[i+1]);
+
+		if(strcmp(argv[i], "-alpha") == 0)
+			alpha = atof(argv[i+1]);
+
+		if(strcmp(argv[i], "-K") == 0)
+			K = atof(argv[i+1]);
+
+		if(strcmp(argv[i], "-e") == 0)
+			e = atof(argv[i+1]);
+
+		if(strcmp(argv[i], "-T") == 0)
+			T = atof(argv[i+1]);
+
+		if(strcmp(argv[i], "-tau") == 0)
+			tau = atof(argv[i+1]);
+
+    }
+
+	// Convert angles over to radians
+	Omega = Omega * DEG_TO_RAD;
+	inc = inc * DEG_TO_RAD;
+	omega = omega * DEG_TO_RAD;
+}
+
 // Generates some orbital data.
-void GenerateData(double Omega, double inc, double omega, double a, double alpha, double e, double tau, double T,
+void GenerateData(double Omega, double inc, double omega, double K, double alpha, double e, double tau, double T,
 		vector<double> & times, vector< vector<double> > & positions, vector< vector<double> > & velocities)
 {
 	int n_data = times.size();
@@ -54,15 +118,15 @@ void GenerateData(double Omega, double inc, double omega, double a, double alpha
 		t = times[i];
 		GetPositions(Omega, inc, omega, alpha, e, tau, T, t, x, y, z);
 
-		// Get the RV, remember we need time in seconds here.
-		GetRV(omega, a*sin(inc), e, tau * DAY_TO_SEC, T * DAY_TO_SEC, t * DAY_TO_SEC, rv);
+		// Get the RV.  Units for time don't matter here.
+		GetRV_K(K, omega, e, tau, T, t, rv);
 
 		// TODO: This really isn't a good way of creating
 		// data with noise as we're assuming 6 mas error on positioning, and 0.1 km/s on RV
 		sig = Rangauss(random_seed);
-		s_x = MasToRad(3) * sig;
-		s_y = MasToRad(3) * sig;
-		s_rv = 0.1 * sig;
+		s_x = 0.1 * y * sig;
+		s_y = 0.1 * x * sig;
+		s_rv = 0.1 * rv * sig;
 
 		positions[i][0] = x; // + s_x * Rangauss(random_seed);
 		positions[i][1] = fabs(s_x);
@@ -75,7 +139,7 @@ void GenerateData(double Omega, double inc, double omega, double a, double alpha
 }
 
 // Writes the data and parameter information to files.
-void WriteData(double Omega, double inc, double omega, double a, double alpha, double e, double tau, double T,
+void WriteData(double Omega, double inc, double omega, double K, double alpha, double e, double tau, double T,
 		vector<double> times, vector< vector<double> > positions, vector< vector<double> > velocities,
 		string output_rv, string output_astr, string output_params)
 {
@@ -87,10 +151,8 @@ void WriteData(double Omega, double inc, double omega, double a, double alpha, d
 	params << "Omega = " << RadToDeg(Omega) << endl;
 	params << "inc   = " << RadToDeg(inc) << endl;
 	params << "omega = " << RadToDeg(omega) << endl;
-	params << "K     = " << a*sin(inc)*TWO_PI / (T * DAY_TO_SEC * sqrt(1 - e*e)) << endl;
-	params << "a     = " << a << endl;
-	params << "asini = " << a * sin(inc) << endl;
-	params << "alpha = " << RadToMas(alpha) << endl;
+	params << "K     = " << K << endl;
+	params << "alpha = " << alpha << endl;
 	params << "e     = " << e << endl;
 	params << "tau   = " << tau << endl;
 	params << "T     = " << T << endl;
@@ -114,7 +176,7 @@ void WriteData(double Omega, double inc, double omega, double a, double alpha, d
 		t = times[i];
 		// Write out the RV value
 		rv << t << " " << velocities[i][0] << " " << velocities[i][1] << endl;
-		astr << t << " " << RadToMas(positions[i][0]) << " " << RadToMas(positions[i][1]) << " " << RadToMas(positions[i][2]) << " " << RadToMas(positions[i][3]) <<endl;
+		astr << t << " " << positions[i][0] << " " << positions[i][1] << " " << positions[i][2] << " " << positions[i][3] <<endl;
 	}
 
 	// Now close the files.
@@ -128,60 +190,39 @@ void WriteData(double Omega, double inc, double omega, double a, double alpha, d
 // things off to other functions.
 int main(int argc, char *argv[])
 {
-    if(argc == 1)
+	bool param_error = false;
+
+    if(argc < 2)
     {
-        PrintHelp();
-        return 0;
+    	cout << "Missing filename on command line";
+    	param_error = true;
     }
 
-    if(argc < 4)
-    	cout << "Missing filename on command line";
-
     // Read in the output filenames:
-    string output_rv = string(argv[1]);
-    string output_ast = string(argv[2]);
-    string output_param = string(argv[3]);
+    string base_name = string(argv[1]);
+    string output_rv = base_name + "_rv";
+    string output_ast = base_name + "_ast";;
+    string output_param = base_name + "_params";;
 
     // Now generate some random orbital parameters.  Angular units in degrees for now.
-    double Omega = 123;
-    double inc = 36;
-    double omega = 250;
-    double a = 5.3E8;
-    double alpha = 30;
-    double e = 0.227;
-    double tau = 2.34567E6;
-    double T = 9890;
-    //double mu_x = 10;
-    //double mu_y = -5;
+    double Omega = 0;
+    double inc = 0;
+    double omega = 0;
+    double K = 0;
+    double alpha = 0;
+    double e = 0;
+    double tau = 0;
+    double T = 0;
+
+    ParseProgOptions(argc, argv, Omega, inc, omega, alpha, K, e, T, tau, param_error);
+
+    if(param_error)
+    	return 0;
 
     // How many data points?
-    int n_data = 100;
-    double t_0 = 2.3E6;
-    double dt = 100;
-	for (int i = 3; i < argc; i++)
-	{
-		// First see if the user is requesting help:
-		if(strcmp(argv[i], "-h") == 0)
-		{
-			PrintHelp();
-		}
-
-// This is left here just in case we need a template for parsing any additional parameters
-//		// We need to know some information about the target:
-//		if ((strcmp(argv[i], "-t") == 0) && (i < argc - 1))
-//		{
-//			target.ImportFile(string(argv[i+1]), comment_chars);
-//			target.ParseFileOptions(argv, i+2, argc);
-//			n_params += 1;
-//		}
-
-	}
-
-	// Now convert the angular orbital paramters over to radians
-	Omega = DegToRad(Omega);
-	inc = DegToRad(inc);
-	omega = DegToRad(omega);
-	alpha = MasToRad(alpha);
+    int n_data = 1000;
+    double t_0 = tau - 0.5*T;
+    double dt = 0.01 * T;
 
 	// Create vectors into which the data will be stored.
 	vector< double > times;
@@ -203,8 +244,8 @@ int main(int argc, char *argv[])
 	}
 
 	// Now generate the data and write it out to a file.
-	GenerateData(Omega, inc, omega, a, alpha, e, tau, T, times, positions, velocities);
-	WriteData(Omega, inc, omega, a, alpha, e, tau, T, times, positions, velocities, output_rv, output_ast, output_param);
+	GenerateData(Omega, inc, omega, K, alpha, e, tau, T, times, positions, velocities);
+	WriteData(Omega, inc, omega, K, alpha, e, tau, T, times, positions, velocities, output_rv, output_ast, output_param);
 
 	return 0;
 }
