@@ -19,6 +19,7 @@
 #include "orbit.h"
 #include "common.h"
 #include "random.h"
+#include "constants.h"
 
 using namespace std;
 

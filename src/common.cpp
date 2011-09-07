@@ -10,9 +10,30 @@
 #include <cstring>
 #include <cstdlib>
 #include <iostream>
+
 #include "common.h"
+#include "constants.h"
 
 using namespace std;
+
+double e_min;
+double e_max;
+double omega_min;
+double omega_max;
+double T_min;
+double T_max;
+double tau_min;
+double tau_max;
+
+double scale_e;
+double scale_omega;
+double scale_T;
+double scale_tau;
+
+double prior_e;
+double prior_omega;
+double prior_T;
+double prior_tau;
 
 double DegToRad(double value)
 {
@@ -45,10 +66,7 @@ double RadToMas(double value)
 *      tau:    Time of periestron passage (units of time)
 *      T:      Orbital Period (same units as tau)
 */
-void ParseCommonParams(int argc, char *argv[],
-		double & omega_min, double & omega_max, double & e_min, double & e_max,
-		double & tau_min, double & tau_max, double & T_min, double & T_max,
-		bool & param_error)
+void ParseCommonParams(int argc, char *argv[], bool & param_error)
 {
 	// First initialize to broad defaults:
     omega_min = 0;
