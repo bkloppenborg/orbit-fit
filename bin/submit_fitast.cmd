@@ -17,4 +17,4 @@ echo Dir: $PWD
 echo This jobs runs on the following processors:
 cat $PBS_NODEFILE
 # openmpi test
-mpirun -np 16 -machinefile $PBS_NODEFILE ./fitast ./test_ast
+mpirun -np 16 -machinefile $PBS_NODEFILE ./fitast ./epsAur_reformat_fit_pm.txt -units deg -motion -x0_min 75 -x0_max 76 -y0_min 43 -y0_max 44 -alpha_min 0 -alpha_max 30
