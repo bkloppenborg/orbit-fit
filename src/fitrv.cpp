@@ -17,6 +17,8 @@
 using namespace std;
 using namespace fitrv;
 
+extern vector<string> param_names;
+
 // Prints out help describing the options on the command line
 void print_help()
 {
@@ -86,6 +88,15 @@ int main(int argc, char *argv[])
 //    }
 
     read_data(input_rv, comment_chars, split_info);
+
+    // Push the parameter names onto the name vector:
+	param_names.push_back("omega ");
+	param_names.push_back("e     ");
+	param_names.push_back("T     ");
+	param_names.push_back("tau   ");
+	param_names.push_back("K     ");
+	param_names.push_back("gamma ");
+	param_names.push_back("s     ");
 
     run_fit();
 

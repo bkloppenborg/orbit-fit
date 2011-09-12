@@ -39,15 +39,7 @@ namespace fitrv
 vector< vector<double> > rv_data;
 int n_rv_data;
 
-// Push the parameter names onto the vector.
-vector<string> param_names;
-//    param_names.push_back("K     ");
-//    param_names.push_back("omega ");
-//    param_names.push_back("e     ");
-//    param_names.push_back("T     ");
-//    param_names.push_back("tau   ");
-//    param_names.push_back("gamma ");
-//    param_names.push_back("s     ");
+extern vector<string> param_names;
 
 // Parameters for the fit:
 double gamma_min;
@@ -238,11 +230,13 @@ void fitrv::dumper(int *nSamples, int *nlive, int *nPar, double **physLive, doub
 //   paramConstr(nPar*2+1) to paramConstr(3*nPar)  	= best-fit (maxlike) parameters
 //   paramConstr(nPar*4+1) to paramConstr(4*nPar)  	= MAP (maximum-a-posteriori) parameters
 */
-//	printf("npar %i\n", nPar);
+//	printf("npar %i\n", *nPar);
+//	printf("Pointer %p\n", paramConstr);
 //
-//	for(register int i = 0; i < nPar; i++)
-//		printf("%s %1.4e %1.4e %1.4e %1.4e\n", param_names[i].c_str(), paramConstr[i], 0.0, 0.0, 0.0);
-
+//	printf("maxLogLike %f, logZ %f, logZerr %f\n", 	*maxLogLike, *logZ, *logZerr);
+//
+//	for(int i = 0; i < *nPar + 1; i++)
+//		printf("%s: %e %e %e\n", param_names[i].c_str(), paramConstr[i], paramConstr[2* (*nPar) + i], paramConstr[3* (*nPar) + i]);
 }
 
 

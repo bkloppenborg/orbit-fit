@@ -49,7 +49,7 @@ void ParseProgOptions(int argc, char *argv[],
 	// Init the random number generator.
 	// Comment the RanInit line to make the code generate the same orbital parameters.
 	static Rand_t random_seed;
-	RanInit(random_seed);
+	//RanInit(random_seed);
 
 	Omega = Randouble(random_seed) * 360;
 	inc = Randouble(random_seed) * 360 - 180;

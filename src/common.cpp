@@ -11,11 +11,14 @@
 #include <cstdlib>
 #include <iostream>
 #include <cstdio>
+#include <vector>
 
 #include "common.h"
 #include "constants.h"
 
 using namespace std;
+
+vector<string> param_names;
 
 double e_min;
 double e_max;
