@@ -314,7 +314,7 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 
     	if(fit_motion)
     	{
-    		dt = t - 2420000; //tau;
+    		dt = t - tau;
     		x += x_0 + mu_x * dt + pi * P_a;
     		y += y_0 + mu_y * dt + pi * P_d;
     	}

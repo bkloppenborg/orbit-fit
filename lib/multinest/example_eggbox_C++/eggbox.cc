@@ -166,6 +166,9 @@ void dumper(int &nSamples, int &nlive, int &nPar, double **physLive, double **po
 	for( i = 0; i < nPar + 1; i++ )
 		for( j = 0; j < nlive; j++ )
 			pLivePts[j][i] = physLive[0][i * nlive + j];
+			
+	for(i = 0; i < nPar; i++)
+	    printf("%f \n", paramConstr[i]);
 }
 
 /***********************************************************************************************************************/
