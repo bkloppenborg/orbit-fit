@@ -17,4 +17,4 @@ echo Dir: $PWD
 echo This jobs runs on the following processors:
 cat $PBS_NODEFILE
 # openmpi test
-mpirun -np 16 -machinefile $PBS_NODEFILE ./fitrv ./merged_no_eclipse.txt -turb -T_min 9000 -T_max 11000 -tau_min 2.45E6 -tau_max 2.46E6 -asini_min 1E9 -asini_max 3E9
+mpirun -np 16 -machinefile $PBS_NODEFILE mpirun -np 2 ./fitrv ../test_data/epsAur_rv_noeclipse.txt -gamma_min -10 -gamma_max 10 -K_min 5 -K_max 20 -tau_min 2445400 -tau_max 2455400 -T_min 8000 -T_max 12000 -err 1 -s_min 0 -s_max 20 -turb
