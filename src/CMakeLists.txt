@@ -21,7 +21,7 @@ if(MPI_FOUND)
     message(STATUS "NOTE: Set Fortran Compiler to " ${CMAKE_Fortran_COMPILER})
     message(STATUS "NOTE: Set CXX Compiler to " ${CMAKE_CXX_COMPILER})
     set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} " -O3 -DMPI")
-    set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS} " -O3 -fPIC -DMPI -ffree-line-length-none")
+    set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS} " -O3 -fPIC -DMPI -ffree-line-length-none -nofor_main")
     include_directories(${MPI_INCLUDE_PATH})
 endif(MPI_FOUND)
 
