@@ -371,10 +371,10 @@ void fitrv::ParseProgOptions(int argc, char *argv[], bool & param_error)
 		if(strcmp(argv[i], "-gamma_max") == 0)
 			gamma_max = atof(argv[i + 1]);
 
-		if(strcmp(argv[i], "-s_min") == 0)
+		if(strcmp(argv[i], "-s_min") == 0 || strcmp(argv[i], "-rv_s_min") == 0)
 			s_min = atof(argv[i + 1]);
 
-		if(strcmp(argv[i], "-s_max") == 0)
+		if(strcmp(argv[i], "-s_max") == 0 || strcmp(argv[i], "-rv_s_max") == 0)
 			s_max = atof(argv[i + 1]);
 
 		if(strcmp(argv[i], "-rv_err") == 0)

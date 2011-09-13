@@ -48,6 +48,11 @@ extern bool fit_astrometric_noise;
 
 extern int motion_offset;
 
+extern double fitrv::s_min;
+extern double fitrv::s_max;
+extern double fitast::s_min;
+extern double fitast::s_max;
+
 // Default number of parameters for the fitting routines.
 int n_rv_params = 6;
 int n_ast_params = 7;
@@ -269,11 +274,6 @@ void run_fit()
 void ParseProgOptions(int argc, char *argv[], bool & param_error)
 {
 	// Init values:
-	fitrv::s_min = 0;
-	fitrv::s_max = 10;
-	fitast::s_min = 0;
-	fitast::s_max = 1;
-
 
 	for (int i = 1; i < argc; i++)
 	{
@@ -284,19 +284,17 @@ void ParseProgOptions(int argc, char *argv[], bool & param_error)
 			param_error = true;
 		}
 
-		if(strcmp(argv[i], "-rv_s_min") == 0)
-			fitrv::s_min = atof(argv[i+1]);
+		if(strcmp(argv[i], "-s_min") == 0)
+			param_error = true;
 
-		if(strcmp(argv[i], "-rv_s_max") == 0)
-			fitrv::s_max = atof(argv[i+1]);
+		if(strcmp(argv[i], "-s_max") == 0)
+			param_error = true;
 
-		if(strcmp(argv[i], "-ast_s_min") == 0)
-			fitast::s_min = atof(argv[i+1]);
-
-		if(strcmp(argv[i], "-ast_s_max") == 0)
-			fitast::s_max = atof(argv[i+1]);
 
 	}
+
+	if(param_error)
+		printf("Use of s_min or s_max is ambigious.  Use rv_s_min/max and ast_s_min/max intead.\n");
 }
 
 // The main routine.  Basically just used to parse out some parameters before handing
