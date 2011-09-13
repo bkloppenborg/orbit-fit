@@ -134,11 +134,11 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 
 	if(fit_motion)
 	{
-		Cube[ast_opt_offset] = ast_params[7]; // x0
-		Cube[ast_opt_offset + 1] = ast_params[8]; // y0
-		Cube[ast_opt_offset + 2] = ast_params[9]; // mu_x
-		Cube[ast_opt_offset + 3] = ast_params[10]; // mu_y
-		Cube[ast_opt_offset + 4] = ast_params[11]; // pi
+		Cube[ast_opt_offset + 1] = ast_params[7]; // x0
+		Cube[ast_opt_offset + 2] = ast_params[8]; // y0
+		Cube[ast_opt_offset + 3] = ast_params[9]; // mu_x
+		Cube[ast_opt_offset + 4] = ast_params[10]; // mu_y
+		Cube[ast_opt_offset + 5] = ast_params[11]; // pi
 	}
 
 	if(fit_astrometric_noise)
