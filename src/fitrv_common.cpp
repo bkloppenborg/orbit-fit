@@ -377,7 +377,7 @@ void fitrv::ParseProgOptions(int argc, char *argv[], bool & param_error)
 		if(strcmp(argv[i], "-s_max") == 0)
 			s_max = atof(argv[i + 1]);
 
-		if(strcmp(argv[i], "-err") == 0)
+		if(strcmp(argv[i], "-rv_err") == 0)
 			default_error = atof(argv[i + 1]);
 	}
 

@@ -581,7 +581,7 @@ void fitast::ParseProgOptions(int argc, char *argv[], bool & param_error)
 		if(strcmp(argv[i], "-alpha_max") == 0)
 			alpha_max = atof(argv[i + 1]);
 
-		if(strcmp(argv[i], "-default_err") == 0)
+		if(strcmp(argv[i], "-ast_err") == 0)
 			default_error = atof(argv[i + 1]);
 
 		if(strcmp(argv[i], "-s_min") == 0)
