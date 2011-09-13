@@ -189,17 +189,16 @@ void fitrv::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     double cos_omega = cos(omega);
     double sin_omega = sin(omega);
 
-    // Note, priors are derived from scale factors (positive numbers) in most cases,
-    // so here we need to multiply by -1 on prior values to get the right scaling.
-    double prior = 1.0 / (K + K_0) * 1.0 / log(1 + (K_max / K_0)*pow(T_min/T, 1.0 / 3)*(1.0 / beta));
-    		- prior_omega
-    		- prior_e
-    		- 1.0 / T * prior_T
-    		- 1.0 / tau * prior_tau
-    		- 1.0 / prior_gamma;
+    // Compute the prior.
+    double prior = 1.0 / (K + K_0) * 1.0 / log(1 + (K_max / K_0)*pow(T_min/T, 1.0 / 3)*(1.0 / beta))
+    		+ prior_omega
+    		+ prior_e
+    		+ 1.0 / T * prior_T
+    		+ 1.0 / tau * prior_tau
+    		+ 1.0 / prior_gamma;
 
     if(fit_turbulence)
-    	prior -= 1.0 / (s + s_0) * prior_s;
+    	prior += 1.0 / (s + s_0) * prior_s;
 
     double llike = -0.5 * n_rv_data * log(TWO_PI);
 
@@ -267,13 +266,14 @@ void fitrv::compute_scales()
 void fitrv::compute_partial_priors()
 {
 	// Now compute the (sometimes partial) priors:
-	prior_K = 1.0 / scale_K;
-	prior_omega = 1.0 / scale_omega;
-	prior_e = 1.0 / scale_e;
+	// NOTE: Some of the priors are negative because the scales are max-min instead of min-max.
+	prior_K = -1.0 / scale_K;
+	prior_omega = -1.0 / scale_omega;
+	prior_e = -1.0 / scale_e;
 	prior_tau = 1.0 / log(tau_max / tau_min);
 	prior_T = 1.0 / log(T_max / T_min);
-	prior_gamma = 1.0 / scale_gamma;
-	prior_s = 1.0 / scale_s;
+	prior_gamma = -1.0 / scale_gamma;
+	prior_s = -1.0 / scale_s;
 }
 
 void fitrv::run_fit()

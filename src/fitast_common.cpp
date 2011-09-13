@@ -320,13 +320,20 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     double s_x2 = s_x * s_x;
     double s_y2 = s_y * s_y;
 
-    double prior = 0;
+    // Compute the prior:
+    double prior = prior_omega
+    		+ prior_e
+    		+ 1.0 / tau * prior_tau
+    		+ 1.0 / T * prior_T
+    		+ prior_Omega
+    		+ prior_inc
+    		+ prior_alpha;
 
     if(fit_motion)
-    	prior -= prior_x_0 + prior_y_0 + prior_mu_x + prior_mu_y + prior_pi;
+    	prior += prior_x_0 + prior_y_0 + prior_mu_x + prior_mu_y + prior_pi;
 
     if(fit_astrometric_noise)
-    	prior -= 2*prior_s;
+    	prior += 2*prior_s;
 
     double llike = 0;
 
@@ -401,19 +408,20 @@ void fitast::compute_scales()
 void fitast::compute_partial_priors()
 {
 	// Now compute the (sometimes partial) priors:
-	prior_Omega = 1.0 / scale_Omega;
-	prior_inc = 1.0 / scale_inc;
-	prior_omega = 1.0 / scale_omega;
-	prior_alpha = 1.0 / scale_alpha;
-	prior_e = 1.0 / scale_e;
+	// NOTE: Some of the priors are negative because the scales are max-min instead of min-max.
+	prior_Omega = -1.0 / scale_Omega;
+	prior_inc = -1.0 / scale_inc;
+	prior_omega = -1.0 / scale_omega;
+	prior_alpha = -1.0 / scale_alpha;
+	prior_e = -1.0 / scale_e;
 	prior_tau = 1.0 / log(tau_max / tau_min);
 	prior_T = 1.0 / log(T_max / T_min);
-	prior_x_0 = 1.0 / scale_x_0;
-	prior_y_0 = 1.0 / scale_y_0;
-	prior_mu_x = 1.0 / scale_mu_x;
-	prior_mu_y = 1.0 / scale_mu_y;
-	prior_pi = 1.0 / scale_pi;
-	prior_s = 1.0 / scale_s;
+	prior_x_0 = -1.0 / scale_x_0;
+	prior_y_0 = -1.0 / scale_y_0;
+	prior_mu_x = -1.0 / scale_mu_x;
+	prior_mu_y = -1.0 / scale_mu_y;
+	prior_pi = -1.0 / scale_pi;
+	prior_s = -1.0 / scale_s;
 }
 
 void fitast::run_fit()

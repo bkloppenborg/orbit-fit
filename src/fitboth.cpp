@@ -128,7 +128,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	//Cube[0];	// omega
 	//Cube[1]; // e
 	//Cube[2]; // tau
-	// Cube[3]; // T
+	//Cube[3]; // T
 	double d_cnt_priors = prior_omega
     		+ prior_e
     		+ 1.0 / Cube[3] * prior_T
