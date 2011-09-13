@@ -36,6 +36,11 @@ extern double inc_max;
 extern double omega_min;
 extern double omega_max;
 
+extern double prior_omega;
+extern double prior_e;
+extern double prior_T;
+extern double prior_tau;
+
 // Booleans for additional fitting parameters:
 extern bool fit_turbulence;
 extern bool fit_motion;
@@ -112,7 +117,20 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	// Now call the fitting routines, have them compute the log likelihood.
 	fitast::log_likelihood(ast_params, &n_ast_params, &n_ast_params, &lnew_ast);
 	fitrv::log_likelihood(rv_params, &n_rv_params, &n_rv_params, &lnew_rv);
-	*lnew = lnew_ast + lnew_rv;
+
+	// NOTE: Remember, we have double-counted the priors for omega, e, T, and tau so we need to
+	// add that back in to not bias our result.  It's positive here.
+	//Cube[0];	// omega
+	//Cube[1]; // e
+	//Cube[2]; // tau
+	// Cube[3]; // T
+	double d_cnt_priors = prior_omega
+    		+ prior_e
+    		+ 1.0 / Cube[3] * prior_T
+    		+ 1.0 / Cube[4] * prior_tau;
+
+	// Now, add the likelihoods together.
+	*lnew = lnew_ast + lnew_rv + d_cnt_priors;
 
 	//printf("%f %f %f\n", lnew_ast, lnew_rv, *lnew);
 
