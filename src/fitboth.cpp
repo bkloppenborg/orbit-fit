@@ -64,9 +64,12 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	double * rv_params = new double[n_rv_params];
 	double * ast_params = new double[n_ast_params];
 
-	int ast_opt_offset = 9;
+	int ast_opt_offset = 8;
 
-	// First reroute the parameters
+	// First reroute the parameters.  Indexing here is a little tricky because
+	// some parameters are optional.  The default order is:
+	// omega, e, tau, T, K, gamma, Omega, i, alpha, rv_s*, x0*, y0*, mu_x*, mu_y*, pi*, ast_s*
+	// where the starred parameter are optional.
 	rv_params[0] = Cube[0];	// omega
 	rv_params[1] = Cube[1]; // e
 	rv_params[2] = Cube[2]; // tau
@@ -90,15 +93,18 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 
 	if(fit_motion)
 	{
-		ast_params[7]  = Cube[ast_opt_offset]; // x0
-		ast_params[8]  = Cube[ast_opt_offset + 1]; // y0
-		ast_params[9]  = Cube[ast_opt_offset + 2]; // mu_x
-		ast_params[10] = Cube[ast_opt_offset + 3]; // mu_y
-		ast_params[11] = Cube[ast_opt_offset + 4]; // pi
+		ast_params[7]  = Cube[ast_opt_offset + 1]; // x0
+		ast_params[8]  = Cube[ast_opt_offset + 2]; // y0
+		ast_params[9]  = Cube[ast_opt_offset + 3]; // mu_x
+		ast_params[10] = Cube[ast_opt_offset + 4]; // mu_y
+		ast_params[11] = Cube[ast_opt_offset + 5]; // pi
 	}
 
 	if(fit_astrometric_noise)
+	{
 		ast_params[6 + motion_offset + 1] = Cube[ast_opt_offset + motion_offset + 1];
+		ast_params[6 + motion_offset + 2] = Cube[ast_opt_offset + motion_offset + 2];
+	}
 
 	double lnew_ast = 0;
 	double lnew_rv = 0;
@@ -136,7 +142,10 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	}
 
 	if(fit_astrometric_noise)
+	{
 		Cube[ast_opt_offset + motion_offset + 1] = ast_params[6 + motion_offset + 1];
+		Cube[ast_opt_offset + motion_offset + 2] = ast_params[6 + motion_offset + 2];
+	}
 
 	// Free allocated memory:
 	delete rv_params;
@@ -183,7 +192,10 @@ void run_fit()
     	n_rv_params += 1;
 
     if(fit_motion)
+    {
     	n_ast_params += 5;
+    	motion_offset = 5;
+    }
 
     if(fit_astrometric_noise)
     	n_ast_params += 2;

@@ -248,6 +248,9 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	double dt;
 	double s_x, s_y;
 
+	s_x = 0;
+	s_y = 0;
+
 	// Pull out the parameters from the cube
 	double omega 	= Cube[0] * scale_omega + omega_min;
 	double e 		= Cube[1] * scale_e + e_min;
@@ -270,11 +273,6 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	{
 		s_x = Cube[6 + motion_offset + 1] * scale_s + s_min;
 		s_y = Cube[6 + motion_offset + 2] * scale_s + s_min;
-	}
-	else
-	{
-		s_x = 0;
-		s_y = 0;
 	}
 
 	// Now set the scaled parameters back in the cube:
@@ -299,6 +297,7 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	{
 		Cube[6 + motion_offset + 1] = s_x;
 		Cube[6 + motion_offset + 2] = s_y;
+		//printf("s_x %i %e s_y %i %e\n", 6 + motion_offset + 1, s_x, 6 + motion_offset + 2, s_y);
 	}
 
     // Pre-compute a few values that are used frequently:
