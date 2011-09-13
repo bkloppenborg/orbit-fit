@@ -135,7 +135,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     		+ 1.0 / Cube[4] * prior_tau;
 
 	// Now, add the likelihoods together.
-	*lnew = lnew_ast + lnew_rv + d_cnt_priors;
+	*lnew = lnew_ast + lnew_rv - d_cnt_priors;
 
 	//printf("%f %f %f\n", lnew_ast, lnew_rv, *lnew);
 
