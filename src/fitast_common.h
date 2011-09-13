@@ -21,6 +21,9 @@ using namespace std;
 
 namespace fitast
 {
+	extern double s_min;
+	extern double s_max;
+
 	void read_data(string filename, string comment_chars, vector< vector<int> > split_info);
 
 	void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew);

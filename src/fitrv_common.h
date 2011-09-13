@@ -17,6 +17,8 @@ using namespace std;
 
 namespace fitrv
 {
+	extern double s_min;
+	extern double s_max;
 
 	void read_data(string filename, string comment_chars, vector< vector<int> > split_info);
 

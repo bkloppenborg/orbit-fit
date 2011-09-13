@@ -12,6 +12,8 @@
 #include <vector>
 #include <iostream>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <float.h>
 
 #include "common.h"
@@ -37,6 +39,9 @@ extern double omega_max;
 // Booleans for additional fitting parameters:
 extern bool fit_turbulence;
 extern bool fit_motion;
+extern bool fit_astrometric_noise;
+
+extern int motion_offset;
 
 // Default number of parameters for the fitting routines.
 int n_rv_params = 6;
@@ -92,6 +97,9 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 		ast_params[11] = Cube[ast_opt_offset + 4]; // pi
 	}
 
+	if(fit_astrometric_noise)
+		ast_params[6 + motion_offset + 1] = Cube[ast_opt_offset + motion_offset + 1];
+
 	double lnew_ast = 0;
 	double lnew_rv = 0;
 
@@ -115,7 +123,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	Cube[8] = ast_params[6]; // alpha
 
 	if(fit_turbulence)
-		Cube[9] = rv_params[6]; // s (additional stellar jitter term)
+		Cube[9] = rv_params[6]; // s_rv (additional stellar jitter term)
 
 
 	if(fit_motion)
@@ -126,6 +134,9 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 		Cube[ast_opt_offset + 3] = ast_params[10]; // mu_y
 		Cube[ast_opt_offset + 4] = ast_params[11]; // pi
 	}
+
+	if(fit_astrometric_noise)
+		Cube[ast_opt_offset + motion_offset + 1] = ast_params[6 + motion_offset + 1];
 
 	// Free allocated memory:
 	delete rv_params;
@@ -174,6 +185,9 @@ void run_fit()
     if(fit_motion)
     	n_ast_params += 5;
 
+    if(fit_astrometric_noise)
+    	n_ast_params += 2;
+
 
 	// set the MultiNest sampling parameters
 	int mmodal = 1;					// do mode separation?
@@ -221,6 +235,40 @@ void run_fit()
 	log_likelihood, dumper, context);
 }
 
+// Parse command-line options that are specific to this program
+void ParseProgOptions(int argc, char *argv[], bool & param_error)
+{
+	// Init values:
+	fitrv::s_min = 0;
+	fitrv::s_max = 10;
+	fitast::s_min = 0;
+	fitast::s_max = 1;
+
+
+	for (int i = 1; i < argc; i++)
+	{
+		// Help
+		if(strcmp(argv[i], "-h") == 0)
+		{
+			print_help();
+			param_error = true;
+		}
+
+		if(strcmp(argv[i], "-rv_s_min") == 0)
+			fitrv::s_min = atof(argv[i+1]);
+
+		if(strcmp(argv[i], "-rv_s_max") == 0)
+			fitrv::s_max = atof(argv[i+1]);
+
+		if(strcmp(argv[i], "-ast_s_min") == 0)
+			fitast::s_min = atof(argv[i+1]);
+
+		if(strcmp(argv[i], "-ast_s_max") == 0)
+			fitast::s_max = atof(argv[i+1]);
+
+	}
+}
+
 // The main routine.  Basically just used to parse out some parameters before handing
 // things off to other functions.
 int main(int argc, char *argv[])
@@ -245,6 +293,7 @@ int main(int argc, char *argv[])
     ParseCommonParams(argc, argv, param_error);
     fitrv::ParseProgOptions(argc, argv, param_error);
     fitast::ParseProgOptions(argc, argv, param_error);
+    ParseProgOptions(argc, argv, param_error);
 
     if(param_error)
     	return 0;

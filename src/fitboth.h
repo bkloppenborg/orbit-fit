@@ -12,6 +12,8 @@ void print_help();
 
 void run_fit();
 
+void ParseProgOptions(int argc, char *argv[], bool & param_error);
+
 int main(int argc, char *argv[]);
 
 #endif /* FITBOTH_H_ */

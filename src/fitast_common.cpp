@@ -41,6 +41,11 @@ double mu_y_min;
 double mu_y_max;
 double pi_min;
 double pi_max;
+namespace fitast
+{
+	double s_min;
+	double s_max;
+}
 
 double Omega_min;
 double Omega_max;
@@ -62,6 +67,10 @@ double scale_y_0;
 double scale_mu_x;
 double scale_mu_y;
 double scale_pi;
+namespace fitast
+{
+	double scale_s;
+}
 
 double scale_Omega;
 double scale_inc;
@@ -83,6 +92,10 @@ double prior_alpha;
 extern double prior_e;
 extern double prior_tau;
 extern double prior_T;
+namespace fitast
+{
+	double prior_s;
+}
 
 vector< vector<double> > ast_data;
 namespace fitast
@@ -98,9 +111,12 @@ namespace fitast
 	int opt_params = 0;
 }
 
+int motion_offset = 0;
+
 bool fit_motion = false;
 bool read_r_theta = false;
 bool read_no_error = false;
+bool fit_astrometric_noise = false;
 
 void fitast::read_data(string filename, string comment_chars, vector< vector<int> > split_info)
 {
@@ -230,6 +246,7 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	double M, E, cos_E, sin_E;
 	double x_0, y_0, mu_x, mu_y, pi;
 	double dt;
+	double s_x, s_y;
 
 	// Pull out the parameters from the cube
 	double omega 	= Cube[0] * scale_omega + omega_min;
@@ -247,6 +264,17 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 		mu_x 	= Cube[9] * scale_mu_x + mu_x_min;
 		mu_y 	= Cube[10] * scale_mu_y + mu_y_min;
 		pi 		= Cube[11] * scale_pi + pi_min;
+	}
+
+	if(fit_astrometric_noise)
+	{
+		s_x = Cube[6 + motion_offset + 1] * scale_s + s_min;
+		s_y = Cube[6 + motion_offset + 2] * scale_s + s_min;
+	}
+	else
+	{
+		s_x = 0;
+		s_y = 0;
 	}
 
 	// Now set the scaled parameters back in the cube:
@@ -267,6 +295,12 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 		Cube[11] = pi;
 	}
 
+	if(fit_astrometric_noise)
+	{
+		Cube[6 + motion_offset + 1] = s_x;
+		Cube[6 + motion_offset + 2] = s_y;
+	}
+
     // Pre-compute a few values that are used frequently:
     double c_Omega = cos(Omega);
     double s_Omega = sin(Omega);
@@ -284,11 +318,16 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     // A few pre-computed values
     double beta = sqrt(1 - e*e);
     double n = ComputeN(T);
+    double s_x2 = s_x * s_x;
+    double s_y2 = s_y * s_y;
 
     double prior = 0;
 
     if(fit_motion)
     	prior -= prior_x_0 + prior_y_0 + prior_mu_x + prior_mu_y + prior_pi;
+
+    if(fit_astrometric_noise)
+    	prior -= 2*prior_s;
 
     double llike = 0;
 
@@ -322,9 +361,9 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     	err_x = x - xi;
     	err_y = y - yi;
 
-    	llike -= log(TWO_PI * e_xi * e_yi)
-    			+ err_x * err_x / (2 * e_xi * e_xi)
-    			+ err_y * err_y / (2 * e_yi * e_yi);
+    	llike -= log(TWO_PI * (e_xi + s_x) * (e_yi + s_y))
+    			+ err_x * err_x / (2 * (e_xi * e_xi + s_x2))
+    			+ err_y * err_y / (2 * (e_yi * e_yi + s_y2));
 
     }
 
@@ -357,6 +396,7 @@ void fitast::compute_scales()
 	scale_mu_x = mu_x_max - mu_x_min;
 	scale_mu_y = mu_y_max - mu_x_min;
 	scale_pi = pi_max - pi_min;
+	scale_s = s_max - s_min;
 }
 
 void fitast::compute_partial_priors()
@@ -374,6 +414,7 @@ void fitast::compute_partial_priors()
 	prior_mu_x = 1.0 / scale_mu_x;
 	prior_mu_y = 1.0 / scale_mu_y;
 	prior_pi = 1.0 / scale_pi;
+	prior_s = 1.0 / scale_s;
 }
 
 void fitast::run_fit()
@@ -392,7 +433,13 @@ void fitast::run_fit()
     opt_params = 0;
 
     if(fit_motion)
+    {
     	opt_params += 5;
+    	motion_offset = 5;
+    }
+
+    if(fit_astrometric_noise)
+    	opt_params += 2;
 
 	// set the MultiNest sampling parameters
 	int mmodal = 1;					// do mode separation?
@@ -462,6 +509,8 @@ void fitast::ParseProgOptions(int argc, char *argv[], bool & param_error)
 	mu_y_max = 1;
 	pi_min = 0;
 	pi_max = 1;
+	s_min = 0;
+	s_max = 1;
 
 	for (int i = 1; i < argc; i++)
 	{
@@ -481,6 +530,9 @@ void fitast::ParseProgOptions(int argc, char *argv[], bool & param_error)
 
 		if(strcmp(argv[i], "-noerr") == 0)
 			read_no_error = true;
+
+		if(strcmp(argv[i], "-ast_noise") == 0)
+			fit_astrometric_noise = true;
 
 		if(strcmp(argv[i], "-mu_x_min") == 0)
 			mu_x_min = atof(argv[i+1]);
@@ -533,6 +585,12 @@ void fitast::ParseProgOptions(int argc, char *argv[], bool & param_error)
 		if(strcmp(argv[i], "-default_err") == 0)
 			default_error = atof(argv[i + 1]);
 
+		if(strcmp(argv[i], "-s_min") == 0)
+			s_min = atof(argv[i + 1]);
+
+		if(strcmp(argv[i], "-s_max") == 0)
+			s_max = atof(argv[i + 1]);
+
     }
 
 	if(fit_motion)
@@ -544,6 +602,9 @@ void fitast::ParseProgOptions(int argc, char *argv[], bool & param_error)
 	if(read_no_error)
 		printf("NOTE: Reading data file without error columns.  \n"
 			   "      Specify -err n.nn to indicate the default error otherwise 1.00 is used.\n");
+
+	if(fit_astrometric_noise)
+		printf("NOTE: Including additional noise source (Gaussian) in astrometric fitting.\n");
 }
 
 void fitast::print_param_limits()
@@ -561,5 +622,10 @@ void fitast::print_param_limits()
 		printf("mu_x (u/t)  : %1.4e %1.4e \n", mu_x_min, mu_x_max);
 		printf("mu_y (u/t)  : %1.4e %1.4e \n", mu_y_min, mu_y_max);
 		printf("pi (arb u)  : %1.4e %1.4e \n", pi_min, pi_max);
+	}
+
+	if(fit_astrometric_noise)
+	{
+		printf("s_(x,y)     : %1.4e %1.4e \n", s_min, s_max);
 	}
 }

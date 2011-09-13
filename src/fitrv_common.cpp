@@ -54,8 +54,11 @@ extern double T_min;
 extern double T_max;
 extern double tau_min;
 extern double tau_max;
-double s_min;
-double s_max;
+namespace fitrv
+{
+	double s_min;
+	double s_max;
+}
 
 // Scaling factors
 double scale_gamma;
@@ -64,7 +67,10 @@ extern double scale_omega;
 extern double scale_e;
 extern double scale_T;
 extern double scale_tau;
-double scale_s;
+namespace fitrv
+{
+	double scale_s;
+}
 
 // Partially (or fully) computed priors.
 double prior_gamma;
@@ -73,10 +79,16 @@ extern double prior_omega;
 extern double prior_e;
 extern double prior_T;
 extern double prior_tau;
-double prior_s;
+namespace fitrv
+{
+	double prior_s;
+}
 
 // Following the discussion in Feroz (2011) the semi-amplitude and jitter terms have value 1.
-double s_0 = 1;
+namespace fitrv
+{
+	double s_0 = 1;
+}
 double K_0 = 1;
 
 // Counter for optional parameters:
