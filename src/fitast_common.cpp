@@ -335,7 +335,7 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     if(fit_astrometric_noise)
     	prior += 2*prior_s;
 
-    double llike = 0;
+    double llike = -n_ast_data * log(TWO_PI);
 
     for(register int i = 0; i < n_ast_data; i++)
     {
@@ -367,14 +367,17 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     	err_x = x - xi;
     	err_y = y - yi;
 
-    	llike -= log(TWO_PI * (e_xi + s_x) * (e_yi + s_y))
-    			+ err_x * err_x / (2 * (e_xi * e_xi + s_x2))
-    			+ err_y * err_y / (2 * (e_yi * e_yi + s_y2));
+    	llike -= log((e_xi + s_x) * (e_yi + s_y))
+    			+ 0.5 * (
+    				  err_x * err_x / (e_xi * e_xi + s_x2)
+    				+ err_y * err_y / (e_yi * e_yi + s_y2)
+    			);
 
     }
 
 	//printf("%e %f %e %f\n", mu_x, dt, mu_x * dt, 0.0);
     //printf("%f %f %f %f %f %f \n", x, xi, e_xi, y, yi, e_yi);
+    //printf("%e %e %e %e\n", x, xi, err_x, err_x * err_x / (2 * (e_xi * e_xi + s_x2)));
     //printf("AST: %f %f\n", llike, prior);
 
     // Assign the value and we're done.
@@ -608,7 +611,9 @@ void fitast::ParseProgOptions(int argc, char *argv[], bool & param_error)
 
 	if(read_no_error)
 		printf("NOTE: Reading data file without error columns.  \n"
-			   "      Specify -err n.nn to indicate the default error otherwise 1.00 is used.\n");
+			   "      Specify -ast_err n.nn to indicate the default error otherwise 1.00 is used.\n");
+	if(default_error != 1)
+		printf("NOTE: Using user-specified astrometric error of %e \n", default_error);
 
 	if(fit_astrometric_noise)
 		printf("NOTE: Including additional noise source (Gaussian) in astrometric fitting.\n");

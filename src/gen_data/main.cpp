@@ -44,6 +44,7 @@ void ParseProgOptions(int argc, char *argv[],
 		double & Omega, double & inc, double & omega,
 		double & alpha, double&  K,
 		double & e, double & T, double & tau,
+		double & x0, double & y0, double & mu_x, double & mu_y, double & pi,
 		bool & param_error)
 {
 	// Init the random number generator.
@@ -59,6 +60,12 @@ void ParseProgOptions(int argc, char *argv[],
 	e = Randouble(random_seed);
 	T = Randouble(random_seed) * 20;
 	tau = Randouble(random_seed) * 2000;
+
+	x0 = Randouble(random_seed) * 360;
+	y0 = Randouble(random_seed) * 180 - 90;
+	mu_x = Randouble(random_seed) * 2E-5 - 1E5;
+	mu_y = Randouble(random_seed) * 2E-5 - 1E5;
+	pi = Randouble(random_seed) * 1E-5;
 
 	for (int i = 1; i < argc; i++)
 	{
@@ -94,6 +101,21 @@ void ParseProgOptions(int argc, char *argv[],
 		if(strcmp(argv[i], "-tau") == 0)
 			tau = atof(argv[i+1]);
 
+		if(strcmp(argv[i], "-x0") == 0)
+			x0 = atof(argv[i+1]);
+
+		if(strcmp(argv[i], "-y0") == 0)
+			y0 = atof(argv[i+1]);
+
+		if(strcmp(argv[i], "-mu_x") == 0)
+			mu_x = atof(argv[i+1]);
+
+		if(strcmp(argv[i], "-mu_y") == 0)
+			mu_y = atof(argv[i+1]);
+
+		if(strcmp(argv[i], "-pi") == 0)
+			pi = atof(argv[i+1]);
+
     }
 
 	// Convert angles over to radians
@@ -104,10 +126,11 @@ void ParseProgOptions(int argc, char *argv[],
 
 // Generates some orbital data.
 void GenerateData(double Omega, double inc, double omega, double K, double alpha, double e, double tau, double T,
-		vector<double> & times, vector< vector<double> > & positions, vector< vector<double> > & velocities)
+		double x0, double y0, double mu_x, double mu_y, double pi,
+		vector<double> & times, vector< vector<double> > & positions, vector< vector<double> > & positions_with_motion, vector< vector<double> > & velocities)
 {
 	int n_data = times.size();
-	double t, x, s_x, y, s_y, z, rv, s_rv, sig;
+	double t, x, s_x, y, s_y, z, rv, s_rv, sig, dt;
 
 	// Pull up the random number generator.
 	static Rand_t random_seed;
@@ -116,6 +139,7 @@ void GenerateData(double Omega, double inc, double omega, double K, double alpha
 	{
 		// Compute the positions and velocities
 		t = times[i];
+		dt = t - times[0];
 		GetPositions(Omega, inc, omega, alpha, e, tau, T, t, x, y, z);
 
 		// Get the RV.  Units for time don't matter here.
@@ -133,6 +157,12 @@ void GenerateData(double Omega, double inc, double omega, double K, double alpha
 		positions[i][2] = y; // + s_y * Rangauss(random_seed);
 		positions[i][3] = fabs(s_y);
 
+		// Positions with motion.  Note, parallax isn't considered yet.
+		positions_with_motion[i][0] = x + x0 + mu_x * dt;
+		positions_with_motion[i][1] = fabs(s_x);
+		positions_with_motion[i][2] = y + y0 + mu_y * dt;
+		positions_with_motion[i][3] = fabs(s_y);
+
 		velocities[i][0] = rv + s_rv * Rangauss(random_seed);
 		velocities[i][1] = fabs(s_rv);
 	}
@@ -140,8 +170,10 @@ void GenerateData(double Omega, double inc, double omega, double K, double alpha
 
 // Writes the data and parameter information to files.
 void WriteData(double Omega, double inc, double omega, double K, double alpha, double e, double tau, double T,
-		vector<double> times, vector< vector<double> > positions, vector< vector<double> > velocities,
-		string output_rv, string output_astr, string output_params)
+		double x0, double y0, double mu_x, double mu_y, double pi,
+		vector<double> times,
+		vector< vector<double> > positions, vector< vector<double> > position_w_motion, vector< vector<double> > velocities,
+		string output_rv, string output_astr, string output_astr_pm, string output_params)
 {
 	// First write out the parameter file:
 	ofstream params;
@@ -156,6 +188,11 @@ void WriteData(double Omega, double inc, double omega, double K, double alpha, d
 	params << "e     = " << e << endl;
 	params << "tau   = " << tau << endl;
 	params << "T     = " << T << endl;
+	params << "x0    = " << x0 << endl;
+	params << "y0    = " << y0 << endl;
+	params << "mu_x  = " << mu_x << endl;
+	params << "mu_y  = " << mu_y << endl;
+	//params << "pi    = " << pi << endl;
 	params.close();
 
 	// Now write out the RV and astrometric data
@@ -169,6 +206,11 @@ void WriteData(double Omega, double inc, double omega, double K, double alpha, d
 	astr.setf(ios::fixed,ios::floatfield);
 	astr.open(output_astr.c_str());
 
+	ofstream astr_pm;
+	astr_pm.precision(10);
+	astr_pm.setf(ios::fixed,ios::floatfield);
+	astr_pm.open(output_astr_pm.c_str());
+
 	int n_data = times.size();
 	double t;
 	for(int i = 0; i < n_data; i++)
@@ -176,12 +218,14 @@ void WriteData(double Omega, double inc, double omega, double K, double alpha, d
 		t = times[i];
 		// Write out the RV value
 		rv << t << " " << velocities[i][0] << " " << velocities[i][1] << endl;
-		astr << t << " " << positions[i][0] << " " << positions[i][1] << " " << positions[i][2] << " " << positions[i][3] <<endl;
+		astr << t << " " << positions[i][0] << " " << positions[i][1] << " " << positions[i][2] << " " << positions[i][3] << endl;
+		astr_pm << t << " " << position_w_motion[i][0] << " " << position_w_motion[i][1] << " " << position_w_motion[i][2] << " " << position_w_motion[i][3] << endl;
 	}
 
 	// Now close the files.
 	rv.close();
 	astr.close();
+	astr_pm.close();
 
 
 }
@@ -201,8 +245,9 @@ int main(int argc, char *argv[])
     // Read in the output filenames:
     string base_name = string(argv[1]);
     string output_rv = base_name + "_rv";
-    string output_ast = base_name + "_ast";;
-    string output_param = base_name + "_params";;
+    string output_ast = base_name + "_ast";
+    string output_ast_pm = base_name + "_ast_pm";
+    string output_param = base_name + "_params";
 
     // Now generate some random orbital parameters.  Angular units in degrees for now.
     double Omega = 0;
@@ -213,39 +258,50 @@ int main(int argc, char *argv[])
     double e = 0;
     double tau = 0;
     double T = 0;
+    double x0 = 0;
+    double y0 = 0;
+    double mu_x = 0;
+    double mu_y = 0;
+    double pi = 0;
+    double t_start;
+    double t_end;
 
-    ParseProgOptions(argc, argv, Omega, inc, omega, alpha, K, e, T, tau, param_error);
+    ParseProgOptions(argc, argv, Omega, inc, omega, alpha, K, e, T, tau, x0, y0, mu_x, mu_y, pi, param_error);
 
     if(param_error)
     	return 0;
 
     // How many data points?
-    int n_data = 1000;
-    double t_0 = tau - 0.5*T;
-    double dt = 0.01 * T;
+    int n_data = 100;
+    double t_min = tau - 2*T;
+    double t_max = tau + 2*T;
+    double dt = (t_max - t_min) / n_data;
 
 	// Create vectors into which the data will be stored.
 	vector< double > times;
 	vector< vector<double> > positions;
+	vector< vector<double> > positions_w_motion;;
 	vector< vector<double> > velocities;
 
 	// Resize the vectors:
 	times.resize(n_data);
 	positions.resize(n_data);
+	positions_w_motion.resize(n_data);
 	velocities.resize(n_data);
 	for(int i = 0; i < n_data; i++)
 	{
 		// Calculate the observation time
-		times[i] = t_0 + i * dt;
+		times[i] = t_min + i * dt;
 
 		// Resize the position vector, store only (x,y) pairs.
 		positions[i].resize(4);
+		positions_w_motion[i].resize(4);
 		velocities[i].resize(2);
 	}
 
 	// Now generate the data and write it out to a file.
-	GenerateData(Omega, inc, omega, K, alpha, e, tau, T, times, positions, velocities);
-	WriteData(Omega, inc, omega, K, alpha, e, tau, T, times, positions, velocities, output_rv, output_ast, output_param);
+	GenerateData(Omega, inc, omega, K, alpha, e, tau, T, x0, y0, mu_x, mu_y, pi, times, positions, positions_w_motion, velocities);
+	WriteData(Omega, inc, omega, K, alpha, e, tau, T, x0, y0, mu_x, mu_y, pi, times, positions, positions_w_motion, velocities, output_rv, output_ast, output_ast_pm, output_param);
 
 	return 0;
 }

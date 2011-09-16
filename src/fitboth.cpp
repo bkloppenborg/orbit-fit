@@ -274,6 +274,7 @@ void run_fit()
 void ParseProgOptions(int argc, char *argv[], bool & param_error)
 {
 	// Init values:
+	bool s_min_max = false;
 
 	for (int i = 1; i < argc; i++)
 	{
@@ -285,16 +286,19 @@ void ParseProgOptions(int argc, char *argv[], bool & param_error)
 		}
 
 		if(strcmp(argv[i], "-s_min") == 0)
-			param_error = true;
+			s_min_max = true;
 
 		if(strcmp(argv[i], "-s_max") == 0)
-			param_error = true;
+			s_min_max = true;
 
 
 	}
 
-	if(param_error)
+	if(s_min_max)
+	{
 		printf("Use of s_min or s_max is ambigious.  Use rv_s_min/max and ast_s_min/max intead.\n");
+		param_error = true;
+	}
 }
 
 // The main routine.  Basically just used to parse out some parameters before handing

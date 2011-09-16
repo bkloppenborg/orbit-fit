@@ -132,25 +132,25 @@ void ParseCommonParams(int argc, char *argv[], bool & param_error)
 	if(omega_min > omega_max)
 	{
 		param_error = true;
-		cout << "Error: omega_min exceeds omega_max, exiting.";
+		cout << "Error: omega_min exceeds omega_max.\n";
 	}
 
 	if(e_min > e_max)
 	{
 		param_error = true;
-		cout << "Error: e_min exceeds e_max, exiting.";
+		cout << "Error: e_min exceeds e_max.\n";
 	}
 
 	if(tau_min > tau_max)
 	{
 		param_error = true;
-		cout << "Error: tau_min exceeds tau_max, exiting.";
+		cout << "Error: tau_min exceeds tau_max.\n";
 	}
 
 	if(T_min > T_max)
 	{
 		param_error = true;
-		cout << "Error: T_min exceeds T_max, exiting.";
+		cout << "Error: T_min exceeds T_max.\n";
 	}
 
 }
