@@ -77,3 +77,8 @@ add_executable(fitboth read_data.cpp common.cpp multinest_inf.cpp fitast_common.
 SET_TARGET_PROPERTIES(fitboth PROPERTIES LINKER_LANGUAGE Fortran)
 target_link_libraries(fitboth orbit textio multinest ${MPI_LIBRARY} ${LAPACK_LIBRARIES})
 
+
+file(GLOB FIT_BOTH_SOURCE ./genplotdata*.cpp)
+add_executable(genplotdata read_data.cpp ${FIT_BOTH_SOURCE})
+SET_TARGET_PROPERTIES(genplotdata PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(genplotdata orbit textio)
