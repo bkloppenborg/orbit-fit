@@ -24,7 +24,8 @@ namespace fitast
 	extern double s_min;
 	extern double s_max;
 
-	void read_data(string filename, string comment_chars, vector< vector<int> > split_info);
+	extern bool read_no_error;
+	extern double default_error;
 
 	void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew);
 

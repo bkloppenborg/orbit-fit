@@ -12,9 +12,14 @@
 #include <iostream>
 
 #include "fitast_common.h"
+#include "read_data.h"
 
 using namespace std;
 using namespace fitast;
+
+extern vector< vector<double> > ast_data;
+extern bool fitast::read_no_error;
+extern double fitast::default_error;
 
 
 // Prints out help describing the options on the command line
@@ -69,8 +74,7 @@ int main(int argc, char *argv[])
     const string comment_chars("\\#~$&£%");
 
     vector< vector<int> > split_info;
-
-    read_data(input_rv, comment_chars, split_info);
+    read_data_ast(input_rv, comment_chars, split_info, ast_data, fitast::read_no_error, fitast::default_error);
 
     run_fit();
 

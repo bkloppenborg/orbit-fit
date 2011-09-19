@@ -21,6 +21,7 @@
 #include "fitast_common.h"
 #include "fitrv_common.h"
 #include "multinest_inf.h"
+#include "read_data.h"
 
 // Externals for the data
 extern int n_rv_data;
@@ -58,6 +59,10 @@ int n_rv_params = 6;
 int n_ast_params = 7;
 
 using namespace std;
+
+extern vector< vector<double> > ast_data;
+extern bool fitast::read_no_error;
+extern double fitast::default_error;
 
 // Dumper
 void dumper(int *nSamples, int *nlive, int *nPar, double **physLive, double **posterior, double *paramConstr, double *maxLogLike, double *logZ, double *logZerr)
@@ -337,7 +342,7 @@ int main(int argc, char *argv[])
     vector< vector<int> > split_info;
 
     fitrv::read_data(input_rv, comment_chars, split_info);
-    fitast::read_data(input_ast, comment_chars, split_info);
+    read_data_ast(input_ast, comment_chars, split_info, ast_data, fitast::read_no_error, fitast::default_error);
 
     run_fit();
 
