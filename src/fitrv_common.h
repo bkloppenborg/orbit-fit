@@ -20,7 +20,8 @@ namespace fitrv
 	extern double s_min;
 	extern double s_max;
 
-	void read_data(string filename, string comment_chars, vector< vector<int> > split_info);
+	extern bool read_no_error;
+	extern double default_error;
 
 	void dumper(int *nSamples, int *nlive, int *nPar, double **physLive, double **posterior, double *paramConstr, double *maxLogLike, double *logZ, double *logZerr);
 

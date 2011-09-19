@@ -23,11 +23,6 @@
 #include "multinest_inf.h"
 #include "read_data.h"
 
-// Externals for the data
-extern int n_rv_data;
-extern int n_ast_data;
-extern vector< vector<double> > rv_data;
-extern vector< vector<double> > ast_data;
 
 // Externals for some orbital parameters:
 extern double Omega_min;
@@ -60,6 +55,12 @@ int n_ast_params = 7;
 
 using namespace std;
 
+// Externals for the data
+extern int n_rv_data;
+extern int n_ast_data;
+extern vector< vector<double> > rv_data;
+extern bool fitrv::read_no_error;
+extern double fitrv::default_error;
 extern vector< vector<double> > ast_data;
 extern bool fitast::read_no_error;
 extern double fitast::default_error;
@@ -341,8 +342,14 @@ int main(int argc, char *argv[])
 
     vector< vector<int> > split_info;
 
-    fitrv::read_data(input_rv, comment_chars, split_info);
+    read_data_rv(input_ast, comment_chars, split_info, rv_data, fitrv::read_no_error, fitrv::default_error);
     read_data_ast(input_ast, comment_chars, split_info, ast_data, fitast::read_no_error, fitast::default_error);
+
+    if(rv_data.size() == 0 || ast_data.size() == 0)
+    {
+    	printf("Data file is empty!  Exiting.\n");
+    	return 0;
+    }
 
     run_fit();
 

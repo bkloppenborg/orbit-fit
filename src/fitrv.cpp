@@ -11,13 +11,17 @@
 
 #include <string>
 #include <iostream>
+#include <cstdio>
 
 #include <common.h>
+#include "read_data.h"
 
 using namespace std;
 using namespace fitrv;
 
 extern vector<string> param_names;
+
+extern vector<vector<double> > rv_data;
 
 // Prints out help describing the options on the command line
 void print_help()
@@ -87,7 +91,13 @@ int main(int argc, char *argv[])
 //    	split_info.push_back(tmp);
 //    }
 
-    read_data(input_rv, comment_chars, split_info);
+    read_data_rv(input_rv, comment_chars, split_info, rv_data, read_no_error, default_error);
+
+    if(rv_data.size() == 0)
+    {
+    	printf("Data file is empty!  Exiting.\n");
+    	return 0;
+    }
 
     // Push the parameter names onto the name vector:
 	param_names.push_back("omega ");

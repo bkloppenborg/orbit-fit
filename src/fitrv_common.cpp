@@ -34,6 +34,7 @@ using namespace fitrv;
 // Data and number of data.
 namespace fitrv
 {
+	bool read_no_error;
 	double default_error;
 }
 vector< vector<double> > rv_data;
@@ -98,61 +99,6 @@ namespace fitrv
 }
 bool fit_turbulence = false;
 
-
-void fitrv::read_data(string filename, string comment_chars, vector< vector<int> > split_info)
-{
-	// First determine the type of observation and fork it off to the
-    vector < string > lines = ReadFile(filename, comment_chars, "Cannot Open Radial Velocity Data File");
-	vector < vector<double> > results;
-
-	int obs_type = -1;
-	double t, rv, e_rv;
-
-	for (unsigned int i = 0; i < lines.size(); i++)
-	{
-		vector < string > tokens;
-
-		if(split_info.size() > 0)
-			tokens = Tokenize(lines[i], split_info);
-		else
-			tokens = Tokenize(lines[i]);
-
-
-		// And now attempt to read in the line
-		try
-		{
-			t = atof(tokens[0].c_str());
-			rv = atof(tokens[1].c_str());
-		}
-		catch(...)
-		{
-			throw std::runtime_error("Could not parse line in RV data file.");
-		}
-
-		// Now do the RV, permit
-		try
-		{
-			e_rv = atof(tokens[2].c_str());
-		}
-		catch(...)
-		{
-			e_rv = 0;
-		}
-
-		if(e_rv == 0)
-			e_rv = default_error;
-
-		// Enable if you want to see the data.
-		//printf("%f %f %f \n", t, rv, e_rv);
-
-		// Push this station on to the list of stations for this array.
-		vector<double> temp;
-		temp.push_back(t);
-		temp.push_back(rv);
-		temp.push_back(e_rv);
-		rv_data.push_back(temp);
-	}
-}
 
 void fitrv::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 {

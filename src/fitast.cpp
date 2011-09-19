@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <cstdio>
 
 #include "fitast_common.h"
 #include "read_data.h"
@@ -75,6 +76,12 @@ int main(int argc, char *argv[])
 
     vector< vector<int> > split_info;
     read_data_ast(input_rv, comment_chars, split_info, ast_data, fitast::read_no_error, fitast::default_error);
+
+    if(ast_data.size() == 0)
+    {
+    	printf("Data file is empty!  Exiting.\n");
+    	return 0;
+    }
 
     run_fit();
 
