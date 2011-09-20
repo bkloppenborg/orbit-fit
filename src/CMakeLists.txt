@@ -25,27 +25,13 @@ if(MPI_FOUND)
     include_directories(${MPI_INCLUDE_PATH})
 endif(MPI_FOUND)
 
-#set(MPI_COMPILER mpic++)
-#set(MPI_LIB "MPI_LIB-NOTFOUND")
-#set(MPI_LIBRARY "MPI_LIB-NOTFOUND")
-#set(MPI_FOUND)
-#find_package(MPI)
-#if(MPI_FOUND)
-#    set(CMAKE_CXX_COMPILER ${MPI_COMPILER})
-#    message(STATUS "NOTE: " ${MPI_COMPILER})
-#    message(STATUS "NOTE: Set CXX Compiler to " ${CMAKE_CXX_COMPILER})
-#    include_directories(${MPI_INCLUDE_PATH})
-#endif(MPI_FOUND)
-
-
-
-
 # We need lapack, but the cluster doesn't have it installed in the
 # right location, workaround
 #list(APPEND LIBS /usr/lib64 -llapack)
-
-find_package(LAPACK REQUIRED)
-include_directories(${LAPACK_INCLUDE_DIRS})
+SET(LAPACK_LIBRARIES "-L/usr/lib64 -llapack -lm")
+message(STATUS "LAPACK Library: " ${LAPACK_LIBRARIES})
+#find_package(LAPACK REQUIRED)
+#include_directories(${LAPACK_INCLUDE_DIRS})
 
 # Requires the math library
 set(LIBS ${LIBS} m)

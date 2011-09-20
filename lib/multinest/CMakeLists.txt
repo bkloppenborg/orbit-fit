@@ -15,8 +15,8 @@ if(MPI_FOUND)
     set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS})
 endif(MPI_FOUND)
 
-find_package(LAPACK REQUIRED)
-include_directories(${LAPACK_INCLUDE_DIRS})
+#find_package(LAPACK REQUIRED)
+#include_directories(${LAPACK_INCLUDE_DIRS})
 
 set(CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS} " -O3 -fPIC -DMPI -ffree-line-length-none")
 add_library(multinest ${MULTINEST_SOURCE})
