@@ -342,7 +342,7 @@ int main(int argc, char *argv[])
 
     vector< vector<int> > split_info;
 
-    read_data_rv(input_ast, comment_chars, split_info, rv_data, fitrv::read_no_error, fitrv::default_error);
+    read_data_rv(input_rv, comment_chars, split_info, rv_data, fitrv::read_no_error, fitrv::default_error);
     read_data_ast(input_ast, comment_chars, split_info, ast_data, fitast::read_no_error, fitast::default_error);
 
     if(rv_data.size() == 0 || ast_data.size() == 0)
