@@ -162,7 +162,7 @@ void gendata_ast(string output_basename, vector<vector<double> > & params, doubl
 	}
 }
 
-void gendata_ast(string output_name, bool fit_pm,
+void gendata_ast(string filename, bool fit_pm,
 		double omega, double e, double tau, double T,
 		double Omega, double inc, double alpha,
 		double x0, double y0, double mu_x, double mu_y, double pi,
@@ -173,10 +173,26 @@ void gendata_ast(string output_name, bool fit_pm,
 	double t, x, xi, y, yi;
 	double dt;
 
-	ofstream output;
-	output.precision(10);
-	output.setf(ios::fixed,ios::floatfield);
-	output.open(output_name.c_str());
+	stringstream output_name;
+	output_name << filename << "_orbit";
+
+	ofstream orbit_out;
+	orbit_out.precision(10);
+	orbit_out.setf(ios::fixed,ios::floatfield);
+	orbit_out.open(output_name.str().c_str());
+
+	ofstream orbit_pm_out;
+
+	if(fit_pm)
+	{
+		output_name.clear();//clear any bits set
+		output_name.str(string());
+		output_name << filename << "_pm";
+
+		orbit_pm_out.precision(10);
+		orbit_pm_out.setf(ios::fixed,ios::floatfield);
+		orbit_pm_out.open(output_name.str().c_str());
+	}
 
 	n = ComputeN(T);
 	Compute_Coefficients(Omega, inc, omega, l1, m1, n1, l2, m2, n2);
@@ -192,17 +208,24 @@ void gendata_ast(string output_name, bool fit_pm,
 
 		Compute_xy(alpha, beta, e, l1, l2, m1, m2, cos_E, sin_E, x, y);
 
+		orbit_out << t << " " << x << " " << y << endl;
+
 		if(fit_pm)
 		{
 			dt = t - tau;
 			x += x0 + mu_x * dt; // + pi * P_a;
 			y += y0 + mu_y * dt; //  + pi * P_d;
+
+			orbit_pm_out << t << " " << x << " " << y << endl;
 		}
 
-		output << t << " " << x << " " << y << endl;
+
 	}
 
-	output.close();
+	orbit_out.close();
+
+	if(fit_pm)
+		orbit_pm_out.close();
 }
 
 void gendata_both(string output_basename, vector<vector<double> > & params, double t_min, double t_max, double t_step)
