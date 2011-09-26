@@ -11,6 +11,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
 #include <cmath>
 
 #include "constants.h"
@@ -323,12 +324,24 @@ int main(int argc, char *argv[])
 	bool astrometry = false;
 	bool both = false;
 	bool rv = false;
+    bool ast_err = true;
+    bool rv_err = true;
 
 	if(argc == 1)
 		print_help();
 
 	if(argc < 5)
 		param_error = true;
+
+
+	for (int i = 1; i < argc; i++)
+	{
+		// First see if the user is requesting help:
+		if(strcmp(argv[i], "-noasterr") == 0)
+			ast_err = false;
+		if(strcmp(argv[i], "-norverr") == 0)
+			rv_err = false;
+	}
 
 	if(param_error)
 		return 0;
@@ -390,9 +403,9 @@ int main(int argc, char *argv[])
     // TODO: Fix the read_no_error, default_error, read_r_theta parameters here:
 
     if(astrometry)
-    	read_data_ast(ast_datafile, comment_chars, split_info, ast_data, false, 0);
+    	read_data_ast(ast_datafile, comment_chars, split_info, ast_data, ast_err, 0);
     if(rv)
-    	read_data_rv(rv_datafile, comment_chars, split_info, rv_data, false, 0);
+    	read_data_rv(rv_datafile, comment_chars, split_info, rv_data, rv_err, 0);
 
     // Now determine the min/max dates in the data sets:
     int n_data = 1000;
@@ -416,7 +429,7 @@ int main(int argc, char *argv[])
 
     t_step = (t_max - t_min) / n_data;
 
-    // Now generate and write out the residuals
+    // Generate and write out the residuals
     if(both)
     	residuals_both(output_basename, params, ast_data, rv_data);
     else if(astrometry)
@@ -424,7 +437,7 @@ int main(int argc, char *argv[])
     else if(rv)
     	residuals_rv(output_basename, params, rv_data);
 
-    // Lastly generate some overlapping data for plotting:
+    // Generate some overlapping data for plotting:
     if(both)
     	gendata_both(output_basename, params, t_min, t_max, t_step);
     else if(astrometry)
@@ -477,15 +490,35 @@ void residuals_ast(string output_name, bool fit_pm,
 		double x0, double y0, double mu_x, double mu_y, double pi,
 		vector<vector<double> > & data)
 {
+
+	// TODO: Make the naming convention here consistent with the gendata_ast function above, namely:
+	// the regular file should contain just the orbital motion.  The _pm file should contain
+	// orbital motion + proper motion residuals.
+
 	double n, M, E, cos_E, sin_E, beta;
 	double l1, m1, l2, m2, n1, n2;
 	double t, x, xi, y, yi;
+	double dx, dy;
 	double dt;
+	double px = 0;
+	double py = 0;
 
-	ofstream output;
-	output.precision(10);
-	output.setf(ios::fixed,ios::floatfield);
-	output.open(output_name.c_str());
+	ofstream res_out;
+	res_out.precision(10);
+	res_out.setf(ios::fixed,ios::floatfield);
+	res_out.open(output_name.c_str());
+
+	ofstream res_out_pm;
+	if(fit_pm)
+	{
+		stringstream output;
+		output << output_name << "_pm";
+		res_out_pm.precision(10);
+		res_out_pm.setf(ios::fixed,ios::floatfield);
+		res_out_pm.open(output.str().c_str());
+	}
+
+
 
 	n = ComputeN(T);
 	Compute_Coefficients(Omega, inc, omega, l1, m1, n1, l2, m2, n2);
@@ -505,17 +538,31 @@ void residuals_ast(string output_name, bool fit_pm,
 
 		Compute_xy(alpha, beta, e, l1, l2, m1, m2, cos_E, sin_E, x, y);
 
+		// TODO: add in the errors from the data file
+		//  err_xi << " " << err_yi
+
+		// First write out the orbit-only residual file.  Remove proper motion from the
+		// OBSERVED positions (
 		if(fit_pm)
 		{
 			dt = t - tau;
-			x += x0 + mu_x * dt; // + pi * P_a;
-			y += y0 + mu_y * dt; //  + pi * P_d;
+			px = x0 + mu_x * dt; // + pi * P_a;
+			py = y0 + mu_y * dt; //  + pi * P_d;
 		}
 
-		output << t << " " << x - xi << " " << y - yi << endl;
+		res_out << t << " " << x << " " << y << " " << xi - px << " " << yi - py << " " << x - xi - px << " " << y - yi - py << endl;
+
+		// Now write out the residual file that includes proper motion:
+		if(fit_pm)
+		{
+			res_out_pm << t << " " << x + px << " " << y + py << " " << xi << " " << yi << " " << x + px - xi << " " << y + py - yi << endl;
+		}
+
 	}
 
-	output.close();
+	res_out.close();
+	if(fit_pm)
+		res_out_pm.close();
 }
 
 void residuals_both(string output_basename, vector<vector<double> > & params, vector<vector<double> > & ast_data, vector<vector<double> > & rv_data)
