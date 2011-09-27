@@ -497,7 +497,7 @@ void residuals_ast(string output_name, bool fit_pm,
 
 	double n, M, E, cos_E, sin_E, beta;
 	double l1, m1, l2, m2, n1, n2;
-	double t, x, xi, y, yi;
+	double t, x, xi, y, yi, P_a, P_d;
 	double dx, dy;
 	double dt;
 	double px = 0;
@@ -528,6 +528,8 @@ void residuals_ast(string output_name, bool fit_pm,
 		t = data[i][0];
 		xi = data[i][1];
 		yi = data[i][3];
+		P_a = data[i][5];
+		P_d = data[i][5];
 
 		M = ComputeM(tau, n, t);
 		E = ComputeE(M, e);
@@ -546,8 +548,8 @@ void residuals_ast(string output_name, bool fit_pm,
 		if(fit_pm)
 		{
 			dt = t - tau;
-			px = x0 + mu_x * dt; // + pi * P_a;
-			py = y0 + mu_y * dt; //  + pi * P_d;
+			px = x0 + mu_x * dt + pi * P_a;
+			py = y0 + mu_y * dt + pi * P_d;
 		}
 
 		res_out << t << " " << x << " " << y << " " << xi - px << " " << yi - py << " " << x - xi - px << " " << y - yi - py << endl;

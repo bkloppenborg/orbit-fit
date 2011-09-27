@@ -45,6 +45,7 @@ void ParseProgOptions(int argc, char *argv[],
 		double & alpha, double&  K,
 		double & e, double & T, double & tau,
 		double & x0, double & y0, double & mu_x, double & mu_y, double & pi,
+		double & t_min, double & t_max, double & dt, int & n_data,
 		bool & param_error)
 {
 	// Init the random number generator.
@@ -66,6 +67,11 @@ void ParseProgOptions(int argc, char *argv[],
 	mu_x = Randouble(random_seed) * 2E-5 - 1E5;
 	mu_y = Randouble(random_seed) * 2E-5 - 1E5;
 	pi = Randouble(random_seed) * 1E-5;
+	
+    n_data = 100;
+	t_min = 0;
+	t_max = 0;
+	dt = 0;
 
 	for (int i = 1; i < argc; i++)
 	{
@@ -115,6 +121,15 @@ void ParseProgOptions(int argc, char *argv[],
 
 		if(strcmp(argv[i], "-pi") == 0)
 			pi = atof(argv[i+1]);
+			
+		if(strcmp(argv[i], "-t_min") == 0)
+			t_min = atof(argv[i+1]);
+			
+		if(strcmp(argv[i], "-t_max") == 0)
+			t_max = atof(argv[i+1]);
+			
+		if(strcmp(argv[i], "-dt") == 0)
+			dt = atof(argv[i+1]);
 
     }
 
@@ -122,6 +137,15 @@ void ParseProgOptions(int argc, char *argv[],
 	Omega = Omega * DEG_TO_RAD;
 	inc = inc * DEG_TO_RAD;
 	omega = omega * DEG_TO_RAD;
+	
+	if(t_min != 0 && t_max != 0 && dt != 0)
+        n_data = int((t_max - t_min) / dt);
+    else
+    {
+        t_min = tau - 2*T;
+        t_max = tau + 2*T;
+        dt = (t_max - t_min) / n_data;
+    }
 }
 
 // Generates some orbital data.
@@ -263,19 +287,15 @@ int main(int argc, char *argv[])
     double mu_x = 0;
     double mu_y = 0;
     double pi = 0;
-    double t_start;
-    double t_end;
+    double t_min = 0;
+    double t_max = 0;
+    double dt = 0;
+    int n_data = 0;
 
-    ParseProgOptions(argc, argv, Omega, inc, omega, alpha, K, e, T, tau, x0, y0, mu_x, mu_y, pi, param_error);
+    ParseProgOptions(argc, argv, Omega, inc, omega, alpha, K, e, T, tau, x0, y0, mu_x, mu_y, pi, t_min, t_max, dt, n_data, param_error);
 
     if(param_error)
     	return 0;
-
-    // How many data points?
-    int n_data = 100;
-    double t_min = tau - 2*T;
-    double t_max = tau + 2*T;
-    double dt = (t_max - t_min) / n_data;
 
 	// Create vectors into which the data will be stored.
 	vector< double > times;
