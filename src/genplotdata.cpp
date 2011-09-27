@@ -324,8 +324,8 @@ int main(int argc, char *argv[])
 	bool astrometry = false;
 	bool both = false;
 	bool rv = false;
-    bool ast_err = true;
-    bool rv_err = true;
+    bool no_ast_err = false;
+    bool no_rv_err = false;
 
 	if(argc == 1)
 		print_help();
@@ -338,9 +338,9 @@ int main(int argc, char *argv[])
 	{
 		// First see if the user is requesting help:
 		if(strcmp(argv[i], "-noasterr") == 0)
-			ast_err = false;
+			no_ast_err = true;
 		if(strcmp(argv[i], "-norverr") == 0)
-			rv_err = false;
+			no_rv_err = true;
 	}
 
 	if(param_error)
@@ -403,9 +403,9 @@ int main(int argc, char *argv[])
     // TODO: Fix the read_no_error, default_error, read_r_theta parameters here:
 
     if(astrometry)
-    	read_data_ast(ast_datafile, comment_chars, split_info, ast_data, ast_err, 0);
+    	read_data_ast(ast_datafile, comment_chars, split_info, ast_data, no_ast_err, 0);
     if(rv)
-    	read_data_rv(rv_datafile, comment_chars, split_info, rv_data, rv_err, 0);
+    	read_data_rv(rv_datafile, comment_chars, split_info, rv_data, no_rv_err, 0);
 
     // Now determine the min/max dates in the data sets:
     int n_data = 1000;
@@ -414,7 +414,7 @@ int main(int argc, char *argv[])
     if(both)
     {
     	t_min = min(rv_data[0][0], ast_data[0][0]);
-    	t_max = max(rv_data[rv_data.size() - 1][0], ast_data[rv_data.size() - 1][0]);
+    	t_max = max(rv_data[rv_data.size() - 1][0], ast_data[ast_data.size() - 1][0]);
     }
     else if(astrometry)
     {
