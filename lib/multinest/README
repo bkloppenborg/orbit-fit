@@ -1,8 +1,8 @@
-MultiNest v 2.12
+MultiNest v 2.15
 Farhan Feroz, Mike Hobson
 f.feroz@mrao.cam.ac.uk
 arXiv:0704.3704 & arXiv:0809.3437
-Released June 2011
+Released Feb 2012
 
 ---------------------------------------------------------------------------
 
@@ -53,13 +53,13 @@ logical initMPI									!initialize MPI routines?, relevant only if compiling wi
 										!set it to F if you want your main program to handle MPI initialization
 double precision logZero							!points with loglike < logZero will be ignored by MultiNest
 loglike(Cube,ndims,nPar,lnew) 							!subroutine which gives lnew=loglike(Cube(ndims))
-dumper(nSamples,nlive,nPar,physLive,posterior,paramConstr,maxloglike,logZ)	!subroutine called after every updInt*10 iterations with the posterior 
+dumper(nSamples,nlive,nPar,physLive,posterior,paramConstr,maxloglike,logZ,c)	!subroutine called after every updInt*10 iterations with the posterior 
 										!distribution, parameter constraints, max loglike & log evidence values
-integer context									!dummy integer for the C interface
+integer context									!not required by MultiNest, any additional information user wants to pass
       
 --------------------------------------------------------------------------- 
 
-likelihood routine: slikelihood(Cube,ndims,nPar,lnew)
+likelihood routine: slikelihood(Cube,ndims,nPar,lnew,context)
 
 Cube(1:nPar) has nonphysical parameters
 scale Cube(1:n_dim) & return the scaled parameters in Cube(1:n_dim) & additional parameters that you want to
@@ -68,7 +68,7 @@ Return the log-likelihood in lnew
 
 ---------------------------------------------------------------------------
 
-dumper routine: dumper(nSamples,nlive,nPar,physLive,posterior,paramConstr,maxloglike,logZ, logZerr)
+dumper routine: dumper(nSamples,nlive,nPar,physLive,posterior,paramConstr,maxloglike,logZ,logZerr,context)
 
 This routine is called after every updInt*10 iterations & at the end of the sampling allowing the posterior 
 distribution & parameter constraints to be passed on to the user in the memory. The argument are as follows:
@@ -79,14 +79,15 @@ nPar						     	= total number of parameters (free + derived)
 physLive(nlive, nPar+1) 		     		= 2D array containing the last set of live points (physical parameters plus derived parameters) along with their loglikelihood values
 posterior(nSamples, nPar+2)		     		= posterior distribution containing nSamples points. Each sample has nPar parameters (physical + derived) along with the their loglike 
 							value & posterior probability
-paramConstr(4*nPar):
-     paramConstr(1) to paramConstr(nPar)	     	= mean values of the parameters
-     paramConstr(nPar+1) to paramConstr(2*nPar)    	= standard deviation of the parameters
-     paramConstr(nPar*2+1) to paramConstr(3*nPar)  	= best-fit (maxlike) parameters
-     paramConstr(nPar*4+1) to paramConstr(4*nPar)  	= MAP (maximum-a-posteriori) parameters
+paramConstr(1, 4*nPar):
+     paramConstr(1, 1) to paramConstr(1, nPar)	     	= mean values of the parameters
+     paramConstr(1, nPar+1) to paramConstr(1, 2*nPar)   = standard deviation of the parameters
+     paramConstr(1, nPar*2+1) to paramConstr(1, 3*nPar) = best-fit (maxlike) parameters
+     paramConstr(1, nPar*4+1) to paramConstr(1, 4*nPar) = MAP (maximum-a-posteriori) parameters
 maxLogLike					    	= maximum loglikelihood value
 logZ						     	= log evidence value
 logZerr						     	= error on log evidence value
+context							not required by MultiNest, any additional information user wants to pass
 
 The 2D arrays are Fortran arrays which are different to C/C++ arrays. In the example dumper routine provided with C & C++
 eggbox examples, the Fortran arrays are copied on to C/C++ arrays.
@@ -204,7 +205,7 @@ deviations as well as the  best fit & MAP parameters of each of the mode found w
 
 
 [root]post_equal_weights.dat
-Contains the equally weighted posterior samples. Columns have sample probability, parameter values. 
+Contains the equally weighted posterior samples. Columns have parameter values followed by loglike value.
 
 
 [root]summary.txt
@@ -216,8 +217,8 @@ mean parameter values, standard deviations of the parameters, bestfit (maxlike) 
 
 C/C++ Interface:
 
-C interface to MultiNest is provided in example_eggboxC directory.
-C++ interface to MultiNest is provided in example_eggboxC++ directory.
+C interface to MultiNest is provided in header file multinest.h in example_eggboxC directory.
+C++ interface to MultiNest is provided in header file multinest.h in example_eggboxC++ directory.
 
 You might need to check the symbol table for your platform (nm libnest3.a | grep nestrun) & edit 
 example_eggbox_C++/eggbox.cc & example_eggbox_C/eggbox.c files to define NESTRUN.
@@ -250,5 +251,14 @@ example_himmelblau: The Himmelblau's minimization problem. (see http://en.wikipe
 example_rosenbrock: Rosenbrock minimization problem. (see http://en.wikipedia.org/wiki/Rosenbrock_function)
 
 example_gaussian: Multivariate Gaussian with uncorrelated paramters.
+
+---------------------------------------------------------------------------
+
+Build through CMake
+
+There is a minimal CMake file called CMakeLists.txt included (courtesy of Brian Kloppenborg). It can be used as follows:
+
+cmake CMakeLists.txt
+make
 
 ---------------------------------------------------------------------------
