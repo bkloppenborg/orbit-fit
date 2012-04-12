@@ -358,9 +358,9 @@ void fitast::run_fit()
 
 	int seed = -1;					// random no. generator seed, if < 0 then take the seed from system clock
 	int fb = 1;					    // need feedback on standard output?
-	int resume = 1;					// resume from a previous job?
+	int resume = 0;					// resume from a previous job?
 	int outfile = 1;				// write output files?
-	int initMPI = 0;				// initialize MPI routines?, relevant only if compiling with MPI
+	int initMPI = 1;				// initialize MPI routines?, relevant only if compiling with MPI
 							        // set it to F if you want your main program to handle MPI initialization
 
 	double logZero = -DBL_MAX;		// points with loglike < logZero will be ignored by MultiNest
