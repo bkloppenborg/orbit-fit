@@ -164,7 +164,8 @@ void fitrv::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
         cos_E = cos(E);
         sin_E = sin(E);
 
-    	rv = K * beta / (1 - e * cos_E) * (beta * cos_E * cos_omega - sin_E * sin_omega);
+        rv = K / (1-e*cos_E) * (cos_omega * cos_E * beta * beta - beta * sin_omega * sin_E);
+    	//rv = K * beta / (1 - e * cos_E) * (beta * cos_E * cos_omega - sin_E * sin_omega);
     	err = gamma + rv - rvi;
 
     	llike -= 0.5 * log(tmp) + err * err / (2.0 * tmp);

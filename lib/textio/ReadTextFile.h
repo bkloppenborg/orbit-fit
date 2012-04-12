@@ -1,12 +1,12 @@
 /*
- * Read.h
+ * ReadTextFile.h
  *
  *  Created on: Feb 18, 2011
  *      Author: bkloppenborg
  */
 
-#ifndef READ_H_
-#define READ_H_
+#ifndef READTEXTFILE_H_
+#define READTEXTFILE_H_
 
 #include <vector>
 #include <string>
@@ -22,4 +22,4 @@ vector<string> Tokenize(string line, vector< vector<int> > split_locations);
 
 bool 	FileExists(string filename);
 
-#endif /* READ_H_ */
+#endif /* READTEXTFILE_H_ */

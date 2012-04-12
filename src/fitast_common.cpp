@@ -181,20 +181,14 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 		//printf("s_x %i %e s_y %i %e\n", 6 + motion_offset + 1, s_x, 6 + motion_offset + 2, s_y);
 	}
 
-    // Pre-compute a few values that are used frequently:
-    double c_Omega = cos(Omega);
-    double s_Omega = sin(Omega);
-    double c_inc = cos(inc);
-    double s_inc = sin(inc);
-    double c_omega = cos(omega);
-    double s_omega = sin(omega);
-
     // Note, if an error is found here, be sure to update the GetRV and GetXY functions.
-    double m1 = c_Omega * c_omega - s_Omega * s_omega * c_inc;
-    double l1 = s_Omega * c_omega + c_Omega * s_omega * c_inc;
-    double m2 = -c_Omega * s_omega - s_Omega * c_omega * c_inc;
-    double l2 = -s_Omega * s_omega + c_Omega * c_omega * c_inc;
-
+    double m1 = 0;
+    double l1 = 0;
+    double m2 = 0;
+    double l2 = 0;
+    double junk = 0;
+    Compute_Coefficients(Omega, inc, omega, l1, m1, junk, l2, m2, junk);
+    
     // A few pre-computed values
     double beta = sqrt(1 - e*e);
     double n = ComputeN(T);

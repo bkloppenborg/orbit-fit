@@ -104,7 +104,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	ast_params[2] = Cube[2]; // tau
 	ast_params[3] = Cube[3]; // T
 	ast_params[4] = Cube[6]; // Omega
-	ast_params[5] = Cube[7]; // i
+	ast_params[5] = Cube[7]; // inc
 	ast_params[6] = Cube[8]; // alpha
 
 	if(fit_motion)
@@ -153,6 +153,7 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	Cube[3] = rv_params[3]; // T
 	Cube[4] = rv_params[4]; // K
 	Cube[5] = rv_params[5]; // gamma
+	
 	Cube[6] = ast_params[4]; // Omega
 	Cube[7] = ast_params[5]; // i
 	Cube[8] = ast_params[6]; // alpha
@@ -233,7 +234,7 @@ void run_fit()
 	// set the MultiNest sampling parameters
 	int mmodal = 1;					// do mode separation?
 	int ceff = 0;					// run in constant efficiency mode?
-	int nlive = 1000;				// number of live points
+	int nlive = 100;				// number of live points
 	double efr = 1.0;				// set the required efficiency
 	double tol = 0.5;				// tol, defines the stopping criteria
 	int ndims = n_rv_params + n_ast_params - 4;					// dimensionality (no. of free parameters)

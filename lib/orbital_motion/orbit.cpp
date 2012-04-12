@@ -211,7 +211,7 @@ void Compute_xy(double a, double beta, double e,
 		double & x, double & y)
 {
     x = a * (l1 * cos_E + beta * l2 * sin_E - e * l1);
-    y = a * (m1 * cos_E + beta * m2 * sin_E - e * m1);
+    y = a * (m1 * cos_E + beta * m2 * sin_E - e * m1);    
 }
 
 // Computes the (v_x, v_y, v_z) velocities of the orbit.  Equations defined in
