@@ -83,6 +83,7 @@ void ParseCommonParams(int argc, char *argv[], bool & param_error)
     tau_max = 2.5E6;
     T_min = 1;
     T_max = 1E4;
+    output = "";
 
     // Parse common options to limit these values further.
 	for (int i = 1; i < argc; i++)
@@ -130,11 +131,8 @@ void ParseCommonParams(int argc, char *argv[], bool & param_error)
 
 		if(strcmp(argv[i], "-o") == 0)
 		{
-			output = argv[i + 1];
+			output = string(argv[i + 1]);
 		}
-		else
-			output = "";
-
     }
 
 	// Lastly check that *_min < *_max, print out an error message and quit
