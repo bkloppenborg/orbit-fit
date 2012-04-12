@@ -26,7 +26,7 @@
 #include "constants.h"
 #include "fitrv_common.h"
 
-#include "multinest_inf.h"
+#include "multinest.h"
 
 using namespace std;
 using namespace fitrv;
@@ -100,7 +100,7 @@ namespace fitrv
 bool fit_turbulence = false;
 
 
-void fitrv::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
+void fitrv::log_likelihood(double * params, int & ndim, int & npars, double & lnew, void * misc)
 {
 	// Local variables
 	double s = 0;
@@ -108,26 +108,26 @@ void fitrv::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	double t, rvi, e_rvi;
 	double rv, err, tmp, cos_E, sin_E;
 
-	double omega 	= Cube[0] * scale_omega + omega_min;
-	double e 		= Cube[1] * scale_e + e_min;
-	double tau 		= Cube[2] * scale_tau + tau_min;
-	double T 		= Cube[3] * scale_T + T_min;
-	double K 		= Cube[4] * scale_K + K_min;
-	double gamma 	= Cube[5] * scale_gamma + gamma_min;
+	double omega 	= params[0] * scale_omega + omega_min;
+	double e 		= params[1] * scale_e + e_min;
+	double tau 		= params[2] * scale_tau + tau_min;
+	double T 		= params[3] * scale_T + T_min;
+	double K 		= params[4] * scale_K + K_min;
+	double gamma 	= params[5] * scale_gamma + gamma_min;
 
     if(fit_turbulence)
-    	s = Cube[6] * scale_s + s_min;
+    	s = params[6] * scale_s + s_min;
 
     // Now set the parameters for feedback to multinest
-    Cube[0] = omega * RAD_TO_DEG;
-    Cube[1] = e;
-    Cube[2] = tau;
-    Cube[3] = T;
-    Cube[4] = K;
-    Cube[5] = gamma;
+    params[0] = omega * RAD_TO_DEG;
+    params[1] = e;
+    params[2] = tau;
+    params[3] = T;
+    params[4] = K;
+    params[5] = gamma;
 
     if(fit_turbulence)
-    	Cube[6] = s;
+    	params[6] = s;
 
     // A few pre-computed values
     double beta = sqrt(1 - e*e);
@@ -174,11 +174,11 @@ void fitrv::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     // printf("%0.4f %0.4f %0.4f %0.4f %0.4f %0.4f \n", K, omega * RAD_TO_DEG, e, T, tau, gamma);
     //printf("RV: %f %f\n", llike, prior);
 
-	*lnew = llike + prior;
+	lnew = llike + prior;
 }
 
 // Dumper
-void fitrv::dumper(int *nSamples, int *nlive, int *nPar, double **physLive, double **posterior, double *paramConstr, double *maxLogLike, double *logZ, double *logZerr)
+void fitrv::dumper(int &nSamples, int &nlive, int &nPar, double **physLive, double **posterior, double ** paramConstr, double &maxLogLike, double & logZ, double & logZerr, void * misc)
 {
 
 /*
@@ -262,22 +262,29 @@ void fitrv::run_fit()
 	if(omega_min == 0 && omega_max == TWO_PI)
 		pWrap[0] = 1;
 
-	char root[100] = "chains/fitrv-";		// root for output files
+	const std::string path = "/tmp/mn";		// root for output files
 	int seed = -1;					// random no. generator seed, if < 0 then take the seed from system clock
 	int fb = 1;					    // need feedback on standard output?
-	int resume = 0;					// resume from a previous job?
+	int resume = 1;					// resume from a previous job?
 	int outfile = 1;				// write output files?
-	int initMPI = 1;				// initialize MPI routines?, relevant only if compiling with MPI
+	int initMPI = 0;				// initialize MPI routines?, relevant only if compiling with MPI
 							        // set it to F if you want your main program to handle MPI initialization
 
 	double logZero = -DBL_MAX;		// points with loglike < logZero will be ignored by MultiNest
-	int context = 0;				// not required by MultiNest, any additional information user wants to pass
+//	int context = 0;				// not required by MultiNest, any additional information user wants to pass
+	int maxIterations = 1E9;
 
+	void * misc = NULL;
 
-
-	// Call MultiNest:
-	run_multinest(mmodal, ceff, nlive, tol, efr, ndims, nPar, nClsPar, maxModes, updInt, Ztol, root, seed, pWrap, fb, resume, outfile, initMPI, logZero,
-	log_likelihood, dumper, context);
+    // Run the nested sampling algorithm
+    nested::run(mmodal, ceff, nlive, tol,
+        efr, ndims, nPar, nClsPar,
+        maxModes, updInt, Ztol, path,
+        seed, pWrap, fb, resume,
+        outfile, initMPI, logZero, maxIterations,
+        fitrv::log_likelihood,
+        fitrv::dumper,
+        misc);
 }
 
 // Parse parameters not handled in ParseCommonParams

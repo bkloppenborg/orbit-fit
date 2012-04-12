@@ -20,7 +20,7 @@
 #include "constants.h"
 #include "fitast_common.h"
 #include "fitrv_common.h"
-#include "multinest_inf.h"
+#include "multinest.h"
 #include "read_data.h"
 
 
@@ -66,13 +66,13 @@ extern bool fitast::read_no_error;
 extern double fitast::default_error;
 
 // Dumper
-void dumper(int *nSamples, int *nlive, int *nPar, double **physLive, double **posterior, double *paramConstr, double *maxLogLike, double *logZ, double *logZerr)
+void dumper(int &nSamples, int &nlive, int &nPar, double **physLive, double **posterior, double ** paramConstr, double &maxLogLike, double & logZ, double & logZerr, void * misc)
 {
 
 }
 
 // Log likelihood function, calls routines in fitrv and fitast
-void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
+void log_likelihood(double * params, int & ndim, int & npars, double & lnew, void * misc)
 {
 	// Because we use fitrv::log_likelihood and fitast::log_likelihood
 	// we need to reroute the parameters.  We store them in these two local arrays
@@ -86,48 +86,48 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	// some parameters are optional.  The default order is:
 	// omega, e, tau, T, K, gamma, Omega, i, alpha, rv_s*, x0*, y0*, mu_x*, mu_y*, pi*, ast_s*
 	// where the starred parameter are optional.
-	rv_params[0] = Cube[0];	// omega
-	rv_params[1] = Cube[1]; // e
-	rv_params[2] = Cube[2]; // tau
-	rv_params[3] = Cube[3]; // T
-	rv_params[4] = Cube[4]; // K
-	rv_params[5] = Cube[5]; // gamma
+	rv_params[0] = params[0];	// omega
+	rv_params[1] = params[1]; // e
+	rv_params[2] = params[2]; // tau
+	rv_params[3] = params[3]; // T
+	rv_params[4] = params[4]; // K
+	rv_params[5] = params[5]; // gamma
 
 	if(fit_turbulence)
 	{
-		rv_params[6] = Cube[9]; // s (additional stellar jitter term)
+		rv_params[6] = params[9]; // s (additional stellar jitter term)
 		ast_opt_offset += 1;
 	}
 
-	ast_params[0] = Cube[0]; // omega
-	ast_params[1] = Cube[1]; // e
-	ast_params[2] = Cube[2]; // tau
-	ast_params[3] = Cube[3]; // T
-	ast_params[4] = Cube[6]; // Omega
-	ast_params[5] = Cube[7]; // inc
-	ast_params[6] = Cube[8]; // alpha
+	ast_params[0] = params[0]; // omega
+	ast_params[1] = params[1]; // e
+	ast_params[2] = params[2]; // tau
+	ast_params[3] = params[3]; // T
+	ast_params[4] = params[6]; // Omega
+	ast_params[5] = params[7]; // inc
+	ast_params[6] = params[8]; // alpha
 
 	if(fit_motion)
 	{
-		ast_params[7]  = Cube[ast_opt_offset + 1]; // x0
-		ast_params[8]  = Cube[ast_opt_offset + 2]; // y0
-		ast_params[9]  = Cube[ast_opt_offset + 3]; // mu_x
-		ast_params[10] = Cube[ast_opt_offset + 4]; // mu_y
-		ast_params[11] = Cube[ast_opt_offset + 5]; // pi
+		ast_params[7]  = params[ast_opt_offset + 1]; // x0
+		ast_params[8]  = params[ast_opt_offset + 2]; // y0
+		ast_params[9]  = params[ast_opt_offset + 3]; // mu_x
+		ast_params[10] = params[ast_opt_offset + 4]; // mu_y
+		ast_params[11] = params[ast_opt_offset + 5]; // pi
 	}
 
 	if(fit_astrometric_noise)
 	{
-		ast_params[6 + motion_offset + 1] = Cube[ast_opt_offset + motion_offset + 1];
-		ast_params[6 + motion_offset + 2] = Cube[ast_opt_offset + motion_offset + 2];
+		ast_params[6 + motion_offset + 1] = params[ast_opt_offset + motion_offset + 1];
+		ast_params[6 + motion_offset + 2] = params[ast_opt_offset + motion_offset + 2];
 	}
 
 	double lnew_ast = 0;
 	double lnew_rv = 0;
 
 	// Now call the fitting routines, have them compute the log likelihood.
-	fitast::log_likelihood(ast_params, &n_ast_params, &n_ast_params, &lnew_ast);
-	fitrv::log_likelihood(rv_params, &n_rv_params, &n_rv_params, &lnew_rv);
+	fitast::log_likelihood(ast_params, n_ast_params, n_ast_params, lnew_ast, misc);
+	fitrv::log_likelihood(rv_params, n_rv_params, n_rv_params, lnew_rv, misc);
 
 	// NOTE: Remember, we have double-counted the priors for omega, e, T, and tau so we need to
 	// add that back in to not bias our result.  It's positive here.
@@ -137,44 +137,44 @@ void log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	//Cube[3]; // T
 	double d_cnt_priors = prior_omega
     		+ prior_e
-    		+ 1.0 / Cube[3] * prior_T
-    		+ 1.0 / Cube[4] * prior_tau;
+    		+ 1.0 / params[3] * prior_T
+    		+ 1.0 / params[4] * prior_tau;
 
 	// Now, add the likelihoods together.
-	*lnew = lnew_ast + lnew_rv - d_cnt_priors;
+	lnew = lnew_ast + lnew_rv - d_cnt_priors;
 
 	//printf("%f %f %f\n", lnew_ast, lnew_rv, *lnew);
 
 	// Now push the parameters back to multinest:
 	// First reroute the parameters
-	Cube[0] = rv_params[0];	// omega
-	Cube[1] = rv_params[1]; // e
-	Cube[2] = rv_params[2]; // tau
-	Cube[3] = rv_params[3]; // T
-	Cube[4] = rv_params[4]; // K
-	Cube[5] = rv_params[5]; // gamma
+	params[0] = rv_params[0];	// omega
+	params[1] = rv_params[1]; // e
+	params[2] = rv_params[2]; // tau
+	params[3] = rv_params[3]; // T
+	params[4] = rv_params[4]; // K
+	params[5] = rv_params[5]; // gamma
 	
-	Cube[6] = ast_params[4]; // Omega
-	Cube[7] = ast_params[5]; // i
-	Cube[8] = ast_params[6]; // alpha
+	params[6] = ast_params[4]; // Omega
+	params[7] = ast_params[5]; // i
+	params[8] = ast_params[6]; // alpha
 
 	if(fit_turbulence)
-		Cube[9] = rv_params[6]; // s_rv (additional stellar jitter term)
+		params[9] = rv_params[6]; // s_rv (additional stellar jitter term)
 
 
 	if(fit_motion)
 	{
-		Cube[ast_opt_offset + 1] = ast_params[7]; // x0
-		Cube[ast_opt_offset + 2] = ast_params[8]; // y0
-		Cube[ast_opt_offset + 3] = ast_params[9]; // mu_x
-		Cube[ast_opt_offset + 4] = ast_params[10]; // mu_y
-		Cube[ast_opt_offset + 5] = ast_params[11]; // pi
+		params[ast_opt_offset + 1] = ast_params[7]; // x0
+		params[ast_opt_offset + 2] = ast_params[8]; // y0
+		params[ast_opt_offset + 3] = ast_params[9]; // mu_x
+		params[ast_opt_offset + 4] = ast_params[10]; // mu_y
+		params[ast_opt_offset + 5] = ast_params[11]; // pi
 	}
 
 	if(fit_astrometric_noise)
 	{
-		Cube[ast_opt_offset + motion_offset + 1] = ast_params[6 + motion_offset + 1];
-		Cube[ast_opt_offset + motion_offset + 2] = ast_params[6 + motion_offset + 2];
+		params[ast_opt_offset + motion_offset + 1] = ast_params[6 + motion_offset + 1];
+		params[ast_opt_offset + motion_offset + 2] = ast_params[6 + motion_offset + 2];
 	}
 
 	// Free allocated memory:
@@ -259,22 +259,29 @@ void run_fit()
 		pWrap[8] = 1;
 
 
-	char root[100] = "chains/fitboth-";		// root for output files
+	const std::string path = "/tmp/mn";		// root for output files
 	int seed = -1;					// random no. generator seed, if < 0 then take the seed from system clock
 	int fb = 1;					    // need feedback on standard output?
-	int resume = 0;					// resume from a previous job?
+	int resume = 1;					// resume from a previous job?
 	int outfile = 1;				// write output files?
-	int initMPI = 1;				// initialize MPI routines?, relevant only if compiling with MPI
+	int initMPI = 0;				// initialize MPI routines?, relevant only if compiling with MPI
 							        // set it to F if you want your main program to handle MPI initialization
 
 	double logZero = -DBL_MAX;		// points with loglike < logZero will be ignored by MultiNest
-	int context = 0;				// not required by MultiNest, any additional information user wants to pass
+//	int context = 0;				// not required by MultiNest, any additional information user wants to pass
+	int maxIterations = 1E9;
 
+	void * misc = NULL;
 
-
-	// Call MultiNest:
-	run_multinest(mmodal, ceff, nlive, tol, efr, ndims, nPar, nClsPar, maxModes, updInt, Ztol, root, seed, pWrap, fb, resume, outfile, initMPI, logZero,
-	log_likelihood, dumper, context);
+    // Run the nested sampling algorithm
+    nested::run(mmodal, ceff, nlive, tol,
+        efr, ndims, nPar, nClsPar,
+        maxModes, updInt, Ztol, path,
+        seed, pWrap, fb, resume,
+        outfile, initMPI, logZero, maxIterations,
+        log_likelihood,
+        dumper,
+        misc);
 }
 
 // Parse command-line options that are specific to this program

@@ -25,7 +25,7 @@
 #include "common.h"
 #include "constants.h"
 
-#include "multinest_inf.h"
+#include "multinest.h"
 
 using namespace std;
 using namespace fitast;
@@ -119,7 +119,7 @@ namespace fitast
 bool fit_astrometric_noise = false;
 
 
-void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
+void fitast::log_likelihood(double * params, int & ndim, int & npars, double & lnew, void * misc)
 {
 	// Locals
 	double t, xi, e_xi, yi, e_yi, P_a, P_d;
@@ -133,51 +133,51 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
 	s_y = 0;
 
 	// Pull out the parameters from the cube
-	double omega 	= Cube[0] * scale_omega + omega_min;
-	double e 		= Cube[1] * scale_e + e_min;
-	double tau 		= Cube[2] * scale_tau + tau_min;
-	double T 		= Cube[3] * scale_T + T_min;
-	double Omega 	= Cube[4] * scale_Omega + Omega_min;
-	double inc 		= Cube[5] * scale_inc + inc_min;
-	double alpha 	= Cube[6] * scale_alpha + alpha_min;
+	double omega 	= params[0] * scale_omega + omega_min;
+	double e 		= params[1] * scale_e + e_min;
+	double tau 		= params[2] * scale_tau + tau_min;
+	double T 		= params[3] * scale_T + T_min;
+	double Omega 	= params[4] * scale_Omega + Omega_min;
+	double inc 		= params[5] * scale_inc + inc_min;
+	double alpha 	= params[6] * scale_alpha + alpha_min;
 
 	if(fit_motion)
 	{
-		x_0 	= Cube[7] * scale_x_0 + x_0_min;
-		y_0 	= Cube[8] * scale_y_0 + y_0_min;
-		mu_x 	= Cube[9] * scale_mu_x + mu_x_min;
-		mu_y 	= Cube[10] * scale_mu_y + mu_y_min;
-		pi 		= Cube[11] * scale_pi + pi_min;
+		x_0 	= params[7] * scale_x_0 + x_0_min;
+		y_0 	= params[8] * scale_y_0 + y_0_min;
+		mu_x 	= params[9] * scale_mu_x + mu_x_min;
+		mu_y 	= params[10] * scale_mu_y + mu_y_min;
+		pi 		= params[11] * scale_pi + pi_min;
 	}
 
 	if(fit_astrometric_noise)
 	{
-		s_x = Cube[6 + motion_offset + 1] * scale_s + s_min;
-		s_y = Cube[6 + motion_offset + 2] * scale_s + s_min;
+		s_x = params[6 + motion_offset + 1] * scale_s + s_min;
+		s_y = params[6 + motion_offset + 2] * scale_s + s_min;
 	}
 
 	// Now set the scaled parameters back in the cube:
-    Cube[0] = omega * RAD_TO_DEG;
-    Cube[1] = e;
-    Cube[2] = tau;
-    Cube[3] = T;
-	Cube[4] = Omega * RAD_TO_DEG;
-	Cube[5] = inc * RAD_TO_DEG;
-    Cube[6] = alpha;
+	params[0] = omega * RAD_TO_DEG;
+	params[1] = e;
+	params[2] = tau;
+	params[3] = T;
+	params[4] = Omega * RAD_TO_DEG;
+	params[5] = inc * RAD_TO_DEG;
+	params[6] = alpha;
 
 	if(fit_motion)
 	{
-		Cube[7] = x_0;
-		Cube[8] = y_0;
-		Cube[9] = mu_x;
-		Cube[10] = mu_y;
-		Cube[11] = pi;
+		params[7] = x_0;
+		params[8] = y_0;
+		params[9] = mu_x;
+		params[10] = mu_y;
+		params[11] = pi;
 	}
 
 	if(fit_astrometric_noise)
 	{
-		Cube[6 + motion_offset + 1] = s_x;
-		Cube[6 + motion_offset + 2] = s_y;
+		params[6 + motion_offset + 1] = s_x;
+		params[6 + motion_offset + 2] = s_y;
 		//printf("s_x %i %e s_y %i %e\n", 6 + motion_offset + 1, s_x, 6 + motion_offset + 2, s_y);
 	}
 
@@ -256,10 +256,10 @@ void fitast::log_likelihood(double *Cube, int *ndim, int *npars, double *lnew)
     //printf("AST: %f %f\n", llike, prior);
 
     // Assign the value and we're done.
-	*lnew = llike + prior;
+	lnew = llike + prior;
 }
 
-void fitast::dumper(int *nSamples, int *nlive, int *nPar, double **physLive, double **posterior, double *paramConstr, double *maxLogLike, double *logZ, double *logZerr)
+void fitast::dumper(int &nSamples, int &nlive, int &nPar, double **physLive, double **posterior, double ** paramConstr, double &maxLogLike, double & logZ, double & logZerr, void * misc)
 {
 	// do nothing for now.
 }
@@ -354,22 +354,29 @@ void fitast::run_fit()
 		pWrap[5] = 1;
 
 
-	char root[100] = "chains/fitast-";		// root for output files
+	const std::string path = "/tmp/mn";		// root for output files
 	int seed = -1;					// random no. generator seed, if < 0 then take the seed from system clock
 	int fb = 1;					    // need feedback on standard output?
-	int resume = 0;					// resume from a previous job?
+	int resume = 1;					// resume from a previous job?
 	int outfile = 1;				// write output files?
-	int initMPI = 1;				// initialize MPI routines?, relevant only if compiling with MPI
+	int initMPI = 0;				// initialize MPI routines?, relevant only if compiling with MPI
 							        // set it to F if you want your main program to handle MPI initialization
 
 	double logZero = -DBL_MAX;		// points with loglike < logZero will be ignored by MultiNest
-	int context = 0;				// not required by MultiNest, any additional information user wants to pass
+//	int context = 0;				// not required by MultiNest, any additional information user wants to pass
+	int maxIterations = 1E9;
 
+	void * misc = NULL;
 
-
-	// Call MultiNest:
-	run_multinest(mmodal, ceff, nlive, tol, efr, ndims, nPar, nClsPar, maxModes, updInt, Ztol, root, seed, pWrap, fb, resume, outfile, initMPI, logZero,
-	log_likelihood, dumper, context);
+    // Run the nested sampling algorithm
+    nested::run(mmodal, ceff, nlive, tol,
+        efr, ndims, nPar, nClsPar,
+        maxModes, updInt, Ztol, path,
+        seed, pWrap, fb, resume,
+        outfile, initMPI, logZero, maxIterations,
+        fitast::log_likelihood,
+        fitast::dumper,
+        misc);
 }
 
 // Parse command-line options that are specific to this program
