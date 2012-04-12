@@ -73,6 +73,8 @@ namespace fitrv
 	double scale_s;
 }
 
+extern string output;
+
 // Partially (or fully) computed priors.
 double prior_gamma;
 double prior_K;
@@ -262,7 +264,6 @@ void fitrv::run_fit()
 	if(omega_min == 0 && omega_max == TWO_PI)
 		pWrap[0] = 1;
 
-	const std::string path = "/tmp/mn";		// root for output files
 	int seed = -1;					// random no. generator seed, if < 0 then take the seed from system clock
 	int fb = 1;					    // need feedback on standard output?
 	int resume = 1;					// resume from a previous job?
@@ -275,6 +276,14 @@ void fitrv::run_fit()
 	int maxIterations = 1E9;
 
 	void * misc = NULL;
+
+	string temp;
+	if(output.length() > 0)
+		temp = output;
+	else
+		temp = "chains/fitrv-";
+
+	const std::string path = temp;
 
     // Run the nested sampling algorithm
     nested::run(mmodal, ceff, nlive, tol,

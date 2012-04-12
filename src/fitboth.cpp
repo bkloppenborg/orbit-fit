@@ -37,6 +37,8 @@ extern double prior_e;
 extern double prior_T;
 extern double prior_tau;
 
+extern string output;
+
 // Booleans for additional fitting parameters:
 extern bool fit_turbulence;
 extern bool fit_motion;
@@ -259,7 +261,6 @@ void run_fit()
 		pWrap[8] = 1;
 
 
-	const std::string path = "/tmp/mn";		// root for output files
 	int seed = -1;					// random no. generator seed, if < 0 then take the seed from system clock
 	int fb = 1;					    // need feedback on standard output?
 	int resume = 1;					// resume from a previous job?
@@ -272,6 +273,14 @@ void run_fit()
 	int maxIterations = 1E9;
 
 	void * misc = NULL;
+
+	string temp;
+	if(output.length() > 0)
+		temp = output;
+	else
+		temp = "chains/fitboth-";
+
+	const std::string path = temp;
 
     // Run the nested sampling algorithm
     nested::run(mmodal, ceff, nlive, tol,

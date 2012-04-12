@@ -97,6 +97,8 @@ namespace fitast
 	double prior_s;
 }
 
+extern string output;
+
 vector< vector<double> > ast_data;
 int n_ast_data;
 
@@ -354,7 +356,6 @@ void fitast::run_fit()
 		pWrap[5] = 1;
 
 
-	const std::string path = "/tmp/mn";		// root for output files
 	int seed = -1;					// random no. generator seed, if < 0 then take the seed from system clock
 	int fb = 1;					    // need feedback on standard output?
 	int resume = 1;					// resume from a previous job?
@@ -367,6 +368,14 @@ void fitast::run_fit()
 	int maxIterations = 1E9;
 
 	void * misc = NULL;
+
+	string temp;
+	if(output.length() > 0)
+		temp = output;
+	else
+		temp = "chains/fitast-";
+
+	const std::string path = temp;
 
     // Run the nested sampling algorithm
     nested::run(mmodal, ceff, nlive, tol,

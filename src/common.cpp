@@ -39,6 +39,8 @@ double prior_omega;
 double prior_T;
 double prior_tau;
 
+string output;
+
 double DegToRad(double value)
 {
 	return value * DEG_TO_RAD;
@@ -125,6 +127,13 @@ void ParseCommonParams(int argc, char *argv[], bool & param_error)
 		{
 			T_max = atof(argv[i + 1]);
 		}
+
+		if(strcmp(argv[i], "-o") == 0)
+		{
+			output = argv[i + 1];
+		}
+		else
+			output = "";
 
     }
 
